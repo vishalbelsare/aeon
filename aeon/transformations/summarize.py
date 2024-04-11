@@ -1,6 +1,6 @@
 """Implement transformers for summarizing a time series."""
 
-__author__ = ["mloning", "RNKuhns", "danbartl", "grzegorzrut"]
+__maintainer__ = []
 __all__ = ["SummaryTransformer", "WindowSummarizer"]
 
 import numpy as np
@@ -186,7 +186,7 @@ class WindowSummarizer(BaseTransformer):
             "pd-multiindex",
             "pd.DataFrame",
             "pd_multiindex_hier",
-        ],  # which mtypes do _fit/_predict support for X?
+        ],
         "skip-inverse-transform": True,  # is inverse-transform skipped when called?
         "univariate-only": False,  # can the transformer handle multivariate X?
         "capability:missing_values": True,  # can estimator handle missing data?
@@ -210,7 +210,7 @@ class WindowSummarizer(BaseTransformer):
         self.target_cols = target_cols
         self.truncate = truncate
 
-        super(WindowSummarizer, self).__init__()
+        super().__init__()
 
     def _fit(self, X, y=None):
         """Fit transformer to X and y.
@@ -609,7 +609,7 @@ class SummaryTransformer(BaseTransformer):
     flatten_transform_index : bool, optional (default=True)
         if True, columns of return DataFrame are flat, by "variablename__feature"
         if False, columns are MultiIndex (variablename__feature)
-        has no effect if return mtype is one without column names
+        has no effect if return type is one without column names
 
     See Also
     --------
@@ -632,13 +632,12 @@ class SummaryTransformer(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Primitives",
-        # what scitype is returned: Primitives, Series, Panel
+        # what abstract type is returned: Primitives, Series, Panel
         "instancewise": True,  # is this an instance-wise transform?
         "X_inner_type": ["pd.DataFrame", "pd.Series"],
-        # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for X?
+        "y_inner_type": "None",
         "fit_is_empty": True,
     }
 
@@ -652,7 +651,7 @@ class SummaryTransformer(BaseTransformer):
         self.quantiles = quantiles
         self.flatten_transform_index = flatten_transform_index
 
-        super(SummaryTransformer, self).__init__()
+        super().__init__()
 
     def _transform(self, X, y=None):
         """Transform X and return a transformed version.
@@ -759,14 +758,14 @@ class PlateauFinder(BaseTransformer):
     def __init__(self, value=np.nan, min_length=2):
         self.value = value
         self.min_length = min_length
-        super(PlateauFinder, self).__init__(_output_convert=False)
+        super().__init__(_output_convert=False)
 
     def _transform(self, X, y=None):
         """Transform X.
 
         Parameters
         ----------
-        X : numpy3D array shape (n_cases, 1, series_length)
+        X : numpy3D array shape (n_cases, 1, n_timepoints)
 
         Returns
         -------
@@ -804,7 +803,7 @@ class PlateauFinder(BaseTransformer):
 
         # put into dataframe
         Xt = pd.DataFrame()
-        column_prefix = "%s_%s" % (
+        column_prefix = "{}_{}".format(
             "channel_",
             "nan" if np.isnan(self.value) else str(self.value),
         )
@@ -841,26 +840,26 @@ class FittedParamExtractor(BaseTransformer):
         "fit_is_empty": True,
         "univariate-only": True,
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Primitives",
-        # what is the scitype of y: None (not needed), Primitives, Series, Panel
-        "instancewise": True,  # is this an instance-wise transform?
-        "X_inner_type": "numpy3D",  # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for y?
+        # what is the abstract type of y: None (not needed), Primitives, Series, Panel
+        "instancewise": True,
+        "X_inner_type": "numpy3D",
+        "y_inner_type": "None",
     }
 
     def __init__(self, forecaster, param_names, n_jobs=None):
         self.forecaster = forecaster
         self.param_names = param_names
         self.n_jobs = n_jobs
-        super(FittedParamExtractor, self).__init__(_output_convert=True)
+        super().__init__(_output_convert=True)
 
     def _transform(self, X, y=None):
         """Transform X.
 
         Parameters
         ----------
-        X: np.ndarray shape (n_time_series, 1, series_length)
+        X: np.ndarray shape (n_cases, 1, n_timepoints)
             The training input samples.
         y : ignored argument for interface compatibility
             Additional data, e.g., labels for transformation
@@ -871,7 +870,7 @@ class FittedParamExtractor(BaseTransformer):
             Extracted parameters; columns are parameter values
         """
         param_names = self._check_param_names(self.param_names)
-        n_instances = X.shape[0]
+        n_cases = X.shape[0]
 
         def _fit_extract(forecaster, x, param_names):
             forecaster.fit(x)
@@ -890,7 +889,7 @@ class FittedParamExtractor(BaseTransformer):
             delayed(_fit_extract)(
                 self.forecaster.clone(), _get_instance(X, i), param_names
             )
-            for i in range(n_instances)
+            for i in range(n_cases)
         )
 
         return pd.DataFrame(extracted_params, columns=param_names)

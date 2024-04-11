@@ -20,7 +20,7 @@ How to use this implementation template to implement a new estimator:
 - you can add more private methods, but do not override BaseEstimator's private methods
     an easy way to be safe is to prefix your methods with "_custom"
 - change docstrings for functions and the file
-- ensure interface compatibility by aeon.utils.estimator_checks.check_estimator
+- ensure interface compatibility by aeon.testing.estimator_checks.check_estimator
 - once complete: use as a local library, or contribute to aeon via PR
 - more details:
     https://www.aeon-toolkit.org/en/stable/developer_guide/add_estimators.html
@@ -32,10 +32,11 @@ Mandatory implements:
 Testing - implement if aeon forecaster (not needed locally):
     get default parameters for test instance(s) - get_test_params()
 """
+
 # todo: write an informative docstring for the file or module, remove the above
 
 # todo: uncomment the following line, enter authors' GitHub IDs
-# __author__ = [authorGitHubID, anotherAuthorGitHubID]
+# __maintainer__ = []
 
 
 from aeon.forecasting.base import BaseForecaster
@@ -77,7 +78,7 @@ class MyForecaster(BaseForecaster):
         "y_inner_type": "pd.Series",
         "X_inner_type": "pd.DataFrame",
         # valid values: str and list of str
-        # if str, must be a valid mtype str, in aeon.datatypes.MTYPE_REGISTER
+        # if str, must be a valid mtype str, in aeon.datatypes.TYPE_REGISTER
         #   of scitype Series, Panel (panel data) or Hierarchical (hierarchical series)
         #   in that case, all inputs are converted to that one type
         # if list of str, must be a list of valid str specifiers
@@ -114,7 +115,7 @@ class MyForecaster(BaseForecaster):
         self.paramc = paramc
 
         # todo: change "MyForecaster" to the name of the class
-        super(MyForecaster, self).__init__()
+        super().__init__()
 
         # todo: optional, parameter checking logic (if applicable) should happen here
         # if writes derived values to self, should *not* overwrite self.parama etc

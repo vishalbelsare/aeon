@@ -1,6 +1,6 @@
 """Naive distance profile computation."""
 
-__author__ = ["baraline"]
+__maintainer__ = []
 
 
 import numpy as np
@@ -14,9 +14,7 @@ from aeon.utils.numba.general import (
 )
 
 
-def naive_distance_profile(
-    X, q, mask, numba_distance_function, numba_distance_args=None
-):
+def naive_distance_profile(X, q, mask, distance_function, distance_args=None):
     r"""
     Compute a distance profile in a brute force way.
 
@@ -36,13 +34,14 @@ def naive_distance_profile(
         The input samples.
     q : np.ndarray shape (n_channels, query_length)
         The query used for similarity search.
-    mask : array, shape (n_instances, n_channels, n_timepoints - query_length + 1)
+    mask : array, shape (n_cases, n_channels, n_timepoints - query_length + 1)
         Boolean mask of the shape of the distance profile indicating for which part
         of it the distance should be computed.
-    numba_distance_function : func
-        A numba njit function used to compute the distance between two 1D vectors.
-    numba_distance_args : dict, default=None
-        Dictionary containing keywords arguments to use for the numba_distance_function
+    distance_function : func
+        A python function or a numba njit function used to compute the distance between
+        two 1D vectors.
+    distance_args : dict, default=None
+        Dictionary containing keywords arguments to use for the distance_function
 
     Returns
     -------
@@ -52,9 +51,7 @@ def naive_distance_profile(
         for each channel.
 
     """
-    dist_func = generate_new_default_njit_func(
-        numba_distance_function, numba_distance_args
-    )
+    dist_func = generate_new_default_njit_func(distance_function, distance_args)
     # This will compile the new function and check for errors outside the numba loops
     dist_func(np.ones(3, dtype=X.dtype), np.zeros(3, dtype=X.dtype))
     return _naive_distance_profile(X, q, mask, dist_func)
@@ -68,8 +65,8 @@ def normalized_naive_distance_profile(
     X_stds,
     q_means,
     q_stds,
-    numba_distance_function,
-    numba_distance_args=None,
+    distance_function,
+    distance_args=None,
 ):
     """
     Compute a distance profile in a brute force way.
@@ -86,37 +83,36 @@ def normalized_naive_distance_profile(
 
     Parameters
     ----------
-    X : array, shape (n_instances, n_channels, n_timepoints)
+    X : array, shape (n_cases, n_channels, n_timepoints)
         The input samples.
     q : array, shape (n_channels, query_length)
         The query used for similarity search.
-    mask : array, shape (n_instances, n_channels, n_timepoints - query_length + 1)
+    mask : array, shape (n_cases, n_channels, n_timepoints - query_length + 1)
         Boolean mask of the shape of the distance profile indicating for which part
         of it the distance should be computed.
-    X_means : array, shape (n_instances, n_channels, n_timepoints - query_length + 1)
+    X_means : array, shape (n_cases, n_channels, n_timepoints - query_length + 1)
         Means of each subsequences of X of size query_length
-    X_stds : array, shape (n_instances, n_channels, n_timepoints - query_length + 1)
+    X_stds : array, shape (n_cases, n_channels, n_timepoints - query_length + 1)
         Stds of each subsequences of X of size query_length
     q_means : array, shape (n_channels)
         Means of the query q
     q_stds : array, shape (n_channels)
         Stds of the query q
-    numba_distance_function : func
-         A numba njit function used to compute the distance between two 1D vectors.
-    numba_distance_args : dict, default=None
-        Dictionary containing keywords arguments to use for the numba_distance_function
+    distance_function : func
+        A python function or a numba njit function used to compute the distance between
+        two 1D vectors.
+    distance_args : dict, default=None
+        Dictionary containing keywords arguments to use for the distance_function
 
     Returns
     -------
     distance_profile : np.ndarray
-        shape (n_instances, n_channels, n_timepoints - query_length + 1).
+        shape (n_cases, n_channels, n_timepoints - query_length + 1).
         The distance profile between q and the input time series X independently
         for each channel.
 
     """
-    dist_func = generate_new_default_njit_func(
-        numba_distance_function, numba_distance_args
-    )
+    dist_func = generate_new_default_njit_func(distance_function, distance_args)
     # This will compile the new function and check for errors outside the numba loops
     dist_func(np.ones(3, dtype=X.dtype), np.zeros(3, dtype=X.dtype))
     return _normalized_naive_distance_profile(
@@ -132,27 +128,27 @@ def _naive_distance_profile(
     numba_distance_function,
 ):
     (
-        n_instances,
+        n_cases,
         n_channels,
         n_timepoints,
         query_length,
         profile_size,
     ) = _get_input_sizes(X, q)
-    distance_profile = np.full((n_instances, n_channels, profile_size), np.inf)
+    distance_profile = np.full((n_cases, n_channels, profile_size), np.inf)
 
-    for i_instance in range(n_instances):
+    for i_instance in range(n_cases):
         for i_candidate in range(profile_size):
             if mask[i_instance, i_candidate]:
                 for i_channel in range(n_channels):
-                    distance_profile[
-                        i_instance, i_channel, i_candidate
-                    ] = numba_distance_function(
-                        q[i_channel],
-                        X[
-                            i_instance,
-                            i_channel,
-                            i_candidate : i_candidate + query_length,
-                        ],
+                    distance_profile[i_instance, i_channel, i_candidate] = (
+                        numba_distance_function(
+                            q[i_channel],
+                            X[
+                                i_instance,
+                                i_channel,
+                                i_candidate : i_candidate + query_length,
+                            ],
+                        )
                     )
 
     return distance_profile
@@ -170,17 +166,17 @@ def _normalized_naive_distance_profile(
     numba_distance_function,
 ):
     (
-        n_instances,
+        n_cases,
         n_channels,
         n_timepoints,
         query_length,
         profile_size,
     ) = _get_input_sizes(X, q)
     q = z_normalize_series_2d_with_mean_std(q, q_means, q_stds)
-    distance_profile = np.full((n_instances, n_channels, profile_size), np.inf)
+    distance_profile = np.full((n_cases, n_channels, profile_size), np.inf)
 
     # Compute euclidean distance for all candidate in a "brute force" way
-    for i_instance in range(n_instances):
+    for i_instance in range(n_cases):
         for i_candidate in range(profile_size):
             if mask[i_instance, i_candidate]:
                 for i_channel in range(n_channels):
@@ -194,8 +190,8 @@ def _normalized_naive_distance_profile(
                         X_means[i_instance, i_channel, i_candidate],
                         X_stds[i_instance, i_channel, i_candidate],
                     )
-                    distance_profile[
-                        i_instance, i_channel, i_candidate
-                    ] = numba_distance_function(q[i_channel], _C)
+                    distance_profile[i_instance, i_channel, i_candidate] = (
+                        numba_distance_function(q[i_channel], _C)
+                    )
 
     return distance_profile

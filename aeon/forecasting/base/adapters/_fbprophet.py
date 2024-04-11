@@ -1,6 +1,6 @@
 """Implements adapter for Facebook prophet to be used in aeon framework."""
 
-__author__ = ["mloning", "aiwalter", "fkiraly"]
+__maintainer__ = []
 __all__ = ["_ProphetAdapter"]
 
 import os
@@ -344,7 +344,7 @@ def _merge_X(df, X):
     return df, X
 
 
-class _suppress_stdout_stderr(object):
+class _suppress_stdout_stderr:
     """Context manager for doing  a "deep suppression" of stdout and stderr.
 
     A context manager for doing a "deep suppression" of stdout and stderr in

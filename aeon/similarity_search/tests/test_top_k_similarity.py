@@ -1,6 +1,6 @@
 """Tests for TopKSimilaritySearch."""
 
-__author__ = ["baraline"]
+__maintainer__ = []
 
 import numpy as np
 import pytest
@@ -14,6 +14,7 @@ DATATYPES = ["int64", "float64"]
 
 @pytest.mark.parametrize("dtype", DATATYPES)
 def test_TopKSimilaritySearch_euclidean(dtype):
+    """Test the functionality of TopKSimilaritySearch with Euclidean distance."""
     X = np.asarray(
         [[[1, 2, 3, 4, 5, 6, 7, 8]], [[1, 2, 4, 4, 5, 6, 5, 4]]], dtype=dtype
     )
@@ -49,19 +50,21 @@ def test_TopKSimilaritySearch_euclidean(dtype):
 
 @pytest.mark.parametrize("dtype", DATATYPES)
 def test_TopKSimilaritySearch_custom_func(dtype):
-    @njit(fastmath=True)
-    def dist(x: np.ndarray, y: np.ndarray) -> float:
+    """Test the functionality of TopKSimilaritySearch using a custom function."""
+
+    def _dist(x: np.ndarray, y: np.ndarray) -> float:
         return np.sqrt(np.sum((x - y) ** 2))
 
+    dist = njit(_dist)
     X = np.asarray(
         [[[1, 2, 3, 4, 5, 6, 7, 8]], [[1, 2, 4, 4, 5, 6, 5, 4]]], dtype=dtype
     )
     q = np.asarray([[3, 4, 5]], dtype=dtype)
 
-    search = TopKSimilaritySearch(k=1, distance=dist)
+    search = TopKSimilaritySearch(k=3, distance=_dist)
     search.fit(X)
     idx = search.predict(q)
-    assert_array_equal(idx, [(0, 2)])
+    assert_array_equal(idx, [(0, 2), (1, 2), (1, 1)])
 
     search = TopKSimilaritySearch(k=3, distance=dist)
     search.fit(X)
@@ -82,6 +85,7 @@ def test_TopKSimilaritySearch_custom_func(dtype):
 
 @pytest.mark.parametrize("dtype", DATATYPES)
 def test_TopKSimilaritySearch_change_args(dtype):
+    """Test the functionality of TopKSimilaritySearch with different arguments."""
     X = np.asarray(
         [[[1, 2, 3, 4, 5, 6, 7, 8]], [[1, 2, 4, 4, 5, 6, 5, 4]]], dtype=dtype
     )
@@ -103,6 +107,7 @@ def test_TopKSimilaritySearch_change_args(dtype):
 
 @pytest.mark.parametrize("dtype", DATATYPES)
 def test_TopKSimilaritySearch_speedup(dtype):
+    """Test the speedup functionality of TopKSimilaritySearch."""
     X = np.asarray(
         [[[1, 2, 3, 4, 5, 6, 7, 8]], [[1, 2, 4, 4, 5, 6, 5, 4]]], dtype=dtype
     )

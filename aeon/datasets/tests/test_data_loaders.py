@@ -1,12 +1,11 @@
 """Test functions for data input and output."""
 
-__author__ = ["SebasKoel", "Emiliathewolf", "TonyBagnall", "jasonlines", "achieveordie"]
-
-__all__ = []
+__maintainer__ = ["TonyBagnall"]
 
 import os
 import shutil
 import tempfile
+from urllib.error import URLError
 
 import numpy as np
 import pandas as pd
@@ -14,6 +13,7 @@ import pytest
 
 import aeon
 from aeon.datasets import (
+    get_dataset_meta_data,
     load_classification,
     load_forecasting,
     load_from_arff_file,
@@ -22,20 +22,23 @@ from aeon.datasets import (
     load_regression,
 )
 from aeon.datasets._data_loaders import (
+    CONNECTION_ERRORS,
     _alias_datatype_check,
     _get_channel_strings,
     _load_data,
     _load_header_info,
     _load_saved_dataset,
 )
-from aeon.tests.test_config import PR_TESTING
+from aeon.testing.test_config import PR_TESTING
 
 
 @pytest.mark.skipif(
     PR_TESTING,
     reason="Only run on overnights because of intermittent fail for read/write",
 )
+@pytest.mark.xfail(raises=CONNECTION_ERRORS)
 def test_load_forecasting_from_repo():
+    """Test load forecasting from repo."""
     name = "FOO"
     with pytest.raises(
         ValueError, match=f"File name {name} is not in the list of " f"valid files"
@@ -57,11 +60,11 @@ def test_load_forecasting_from_repo():
     PR_TESTING,
     reason="Only run on overnights because of intermittent fail for read/write",
 )
+@pytest.mark.xfail(raises=CONNECTION_ERRORS)
 def test_load_classification_from_repo():
+    """Test load classification from repo."""
     name = "FOO"
-    with pytest.raises(
-        ValueError, match=f"dataset name ={name} is not available on extract path"
-    ):
+    with pytest.raises(ValueError):
         load_classification(name)
     name = "SonyAIBORobotSurface1"
     X, y, meta = load_classification(name, return_metadata=True)
@@ -84,13 +87,17 @@ def test_load_classification_from_repo():
     PR_TESTING,
     reason="Only run on overnights because of intermittent fail for read/write",
 )
+@pytest.mark.xfail(raises=CONNECTION_ERRORS)
 def test_load_regression_from_repo():
+    """Test load regression from repo."""
     name = "FOO"
     with pytest.raises(
         ValueError, match=f"File name {name} is not in the list of " f"valid files"
     ):
         load_regression(name)
     name = "FloodModeling1"
+    name2 = "ParkingBirmingham"
+    name3 = "AcousticContaminationMadrid"
     with tempfile.TemporaryDirectory() as tmp:
         X, y, meta = load_regression(name, extract_path=tmp, return_metadata=True)
         assert isinstance(X, np.ndarray)
@@ -102,30 +109,51 @@ def test_load_regression_from_repo():
         assert not meta["timestamps"]
         assert meta["univariate"]
         assert meta["equallength"]
+        assert not meta["missing"]
         assert not meta["classlabel"]
         assert meta["targetlabel"]
         assert meta["class_values"] == []
+        # Test load equal length
+        X, y, meta = load_regression(
+            name2, extract_path=tmp, return_metadata=True, load_equal_length=True
+        )
+        assert meta["equallength"]
+        X, y, meta = load_regression(
+            name2, extract_path=tmp, return_metadata=True, load_equal_length=False
+        )
+        assert not meta["equallength"]
+        # Test load no missing values
+        X, y, meta = load_regression(
+            name3, extract_path=tmp, return_metadata=True, load_no_missing=True
+        )
+        assert not meta["missing"]
+        X, y, meta = load_regression(
+            name3, extract_path=tmp, return_metadata=True, load_no_missing=False
+        )
+        assert meta["missing"]
 
 
 @pytest.mark.skipif(
     PR_TESTING,
     reason="Only run on overnights because of intermittent fail for read/write",
 )
+@pytest.mark.xfail(raises=CONNECTION_ERRORS)
 def test_load_fails():
+    """Test load fails."""
     data_path = os.path.join(
         os.path.dirname(aeon.__file__),
         "datasets/data/UnitTest/",
     )
     with pytest.raises(ValueError):
-        X, y = load_regression("FOOBAR", extract_path=data_path)
+        load_regression("FOOBAR", extract_path=data_path)
     with pytest.raises(ValueError):
-        X, y = load_classification("FOOBAR", extract_path=data_path)
+        load_classification("FOOBAR", extract_path=data_path)
     with pytest.raises(ValueError):
-        X, y = load_forecasting("FOOBAR", extract_path=data_path)
+        load_forecasting("FOOBAR", extract_path=data_path)
 
 
 def test__alias_datatype_check():
-    """Test the alias check"""
+    """Test the alias check."""
     assert _alias_datatype_check("FOO") == "FOO"
     assert _alias_datatype_check("np2d") == "numpy2D"
     assert _alias_datatype_check("numpy2d") == "numpy2D"
@@ -139,13 +167,15 @@ def test__alias_datatype_check():
     PR_TESTING,
     reason="Only run on overnights because of intermittent fail for read/write",
 )
+@pytest.mark.xfail(raises=CONNECTION_ERRORS)
 def test__load_header_info():
+    """Test load header info."""
     path = os.path.join(
         os.path.dirname(aeon.__file__),
         "datasets/data/UnitTest/UnitTest_TRAIN.ts",
     )
     """Test loading a header."""
-    with open(path, "r", encoding="utf-8") as file:
+    with open(path, encoding="utf-8") as file:
         # Read in headers
         meta_data = _load_header_info(file)
         assert meta_data["problemname"] == "unittest"
@@ -165,7 +195,7 @@ def test__load_header_info():
             temp_file = open(load_path, "w", encoding="utf-8")
             temp_file.write(name)
             temp_file.close()
-            with open(load_path, "r", encoding="utf-8") as file:
+            with open(load_path, encoding="utf-8") as file:
                 with pytest.raises(IOError):
                     _load_header_info(file)
             count = count + 1
@@ -175,7 +205,7 @@ def test__load_header_info():
         temp_file = open(load_path, "w", encoding="utf-8")
         temp_file.write(name)
         temp_file.close()
-        with open(load_path, "r", encoding="utf-8") as file:
+        with open(load_path, encoding="utf-8") as file:
             meta = _load_header_info(file)
             assert meta["missing"] is True
             assert meta["classlabel"] is True
@@ -185,13 +215,14 @@ def test__load_header_info():
     PR_TESTING,
     reason="Only run on overnights because of intermittent fail for read/write",
 )
+@pytest.mark.xfail(raises=CONNECTION_ERRORS)
 def test__load_data():
     """Test loading after header."""
     path = os.path.join(
         os.path.dirname(aeon.__file__),
         "datasets/data/UnitTest/UnitTest_TRAIN.ts",
     )
-    with open(path, "r", encoding="utf-8") as file:
+    with open(path, encoding="utf-8") as file:
         meta_data = _load_header_info(file)
         X, y, _ = _load_data(file, meta_data)
         assert X.shape == (20, 1, 24)
@@ -200,7 +231,7 @@ def test__load_data():
         os.path.dirname(aeon.__file__),
         "datasets/data/BasicMotions/BasicMotions_TRAIN.ts",
     )
-    with open(path, "r", encoding="utf-8") as file:
+    with open(path, encoding="utf-8") as file:
         meta_data = _load_header_info(file)
         # Check raise error for incorrect univariate test
         meta_data["univariate"] = True
@@ -210,7 +241,7 @@ def test__load_data():
         os.path.dirname(aeon.__file__),
         "datasets/data/JapaneseVowels/JapaneseVowels_TRAIN.ts",
     )
-    with open(path, "r", encoding="utf-8") as file:
+    with open(path, encoding="utf-8") as file:
         meta_data = _load_header_info(file)
         # Check raise error for incorrect univariate test
         meta_data["equallength"] = True
@@ -234,7 +265,7 @@ def test__load_data():
             temp_file = open(load_path, "w", encoding="utf-8")
             temp_file.write(data)
             temp_file.close()
-            with open(load_path, "r", encoding="utf-8") as file:
+            with open(load_path, encoding="utf-8") as file:
                 with pytest.raises(IOError):
                     _load_data(file, meta_data)
             count = count + 1
@@ -250,7 +281,7 @@ def test__load_data():
         temp_file = open(load_path, "w", encoding="utf-8")
         temp_file.write(data)
         temp_file.close()
-        with open(load_path, "r", encoding="utf-8") as file:
+        with open(load_path, encoding="utf-8") as file:
             X, y, meta_data = _load_data(file, meta_data)
             assert isinstance(X, np.ndarray)
 
@@ -280,7 +311,6 @@ def test_load_provided_dataset(return_X_y, return_type):
         assert isinstance(X, np.ndarray) and X.ndim == 3
     elif return_type == "numpy2D":
         assert isinstance(X, np.ndarray) and X.ndim == 2
-    # Check whether object is same mtype or not, via bool
 
 
 @pytest.mark.skipif(
@@ -295,7 +325,6 @@ def test_load_from_tsfile():
     2. Multivariate equal length (BasicMotions) returns 3D numpy X, 1D numpy y
     3. Univariate and multivariate unequal length (PLAID) return X as list of numpy
     """
-
     # Test 1.1: load univariate equal length (UnitTest), should return 2D array and 1D
     # array, test first and last data
     # Test 1.2: Load a problem without y values (UnitTest),  test first and last data.
@@ -397,6 +426,11 @@ def test_load_classification():
     assert isinstance(y, np.ndarray)
     assert X.shape == (42, 1, 24)
     assert y.shape == (42,)
+    # Try load covid, should work
+    X, y, meta = load_classification("Covid3Month", return_metadata=True)
+
+    with pytest.raises(ValueError, match="You have tried to load a regression problem"):
+        X, y = load_classification("CardanoSentiment")
 
 
 @pytest.mark.skipif(
@@ -404,7 +438,7 @@ def test_load_classification():
     reason="Only run on overnights because of intermittent fail for read/write",
 )
 def test_load_from_ucr_tsv():
-    """Test that GunPoint is the same when loaded from .ts and .tsv"""
+    """Test that GunPoint is the same when loaded from .ts and .tsv."""
     X, y = _load_saved_dataset("GunPoint", split="TRAIN")
     data_path = os.path.join(
         os.path.dirname(aeon.__file__),
@@ -421,7 +455,7 @@ def test_load_from_ucr_tsv():
     reason="Only run on overnights because of intermittent fail for read/write",
 )
 def test_load_from_arff():
-    """Test that GunPoint is the same when loaded from .ts and .arff"""
+    """Test that GunPoint is the same when loaded from .ts and .arff."""
     X, y = _load_saved_dataset("GunPoint", split="TRAIN")
     data_path = os.path.join(
         os.path.dirname(aeon.__file__),
@@ -446,7 +480,29 @@ def test_load_from_arff():
 
 
 def test__get_channel_strings():
+    """Test get channel string."""
     line = "(2007-01-01 00:00:00,241.97),(2007-01-01 00:01:00,241.75):1"
     channel_strings = _get_channel_strings(line)
     assert len(channel_strings) == 2
     assert channel_strings[0] == "241.97,241.75"
+
+
+@pytest.mark.skipif(
+    PR_TESTING,
+    reason="Only run on overnights because of intermittent fail for read/write",
+)
+@pytest.mark.xfail(raises=(URLError, TimeoutError, ConnectionError))
+def test_get_meta_data():
+    """Test the get_dataset_meta_data function."""
+    df = get_dataset_meta_data()
+    assert isinstance(df, pd.DataFrame)
+    df = get_dataset_meta_data(features="TrainSize")
+    assert df.shape[1] == 2
+    df = get_dataset_meta_data(data_names=["Adiac", "Chinatown"])
+    assert df.shape[0] == 2
+    df = get_dataset_meta_data(
+        data_names=["Adiac", "Chinatown"], features=["TestSize", "Channels"]
+    )
+    assert df.shape == (2, 3)
+    with pytest.raises(ValueError):
+        df = get_dataset_meta_data(url="FOOBAR")

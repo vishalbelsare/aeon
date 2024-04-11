@@ -12,7 +12,7 @@ from sklearn.neighbors import NearestNeighbors
 
 from aeon.transformations.base import BaseTransformer
 
-__author__ = ["KatieBuc"]
+__maintainer__ = []
 __all__ = ["DOBIN"]
 
 
@@ -91,7 +91,7 @@ class DOBIN(BaseTransformer):
     ):
         self.frac = frac
         self.k = k
-        super(DOBIN, self).__init__()
+        super().__init__()
 
     def _fit(self, X, y=None):
         """Fit transformer to X and y.
@@ -100,9 +100,9 @@ class DOBIN(BaseTransformer):
 
         Parameters
         ----------
-        X : Series of mtype X_inner_type
+        X : Series of type X_inner_type
             Data to be transformed
-        y : Series of mtype y_inner_type, default=None
+        y : Series of type y_inner_type, default=None
             Not required for this unsupervised transform.
 
         Returns
@@ -187,9 +187,9 @@ class DOBIN(BaseTransformer):
 
         Parameters
         ----------
-        X : Series of mtype X_inner_type
+        X : Series of type X_inner_type
             Data to be transformed
-        y : Series of mtype y_inner_type, default=None
+        y : Series of type y_inner_type, default=None
             Not required for this unsupervised transform.
 
         Returns

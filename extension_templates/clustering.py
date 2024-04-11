@@ -30,6 +30,7 @@ Optional implements:
 Testing - implement if aeon forecaster (not needed locally):
     get default parameters for test instance(s) - get_test_params()
 """
+
 import numpy as np
 
 from aeon.clustering import BaseClusterer
@@ -84,7 +85,7 @@ class MyClusterer(BaseClusterer):
         self.paramc = paramc
 
         # todo: change "MyClusterer" to the name of the class
-        super(MyClusterer, self).__init__()
+        super().__init__()
 
         # todo: optional, parameter checking logic (if applicable) should happen here
         # if writes derived values to self, should *not* overwrite self.parama etc
@@ -125,7 +126,7 @@ class MyClusterer(BaseClusterer):
 
         Returns
         -------
-        np.ndarray (1d array of shape (n_instances,))
+        np.ndarray (1d array of shape (n_cases,))
             Index of the cluster each time series in X belongs to.
         """
         # implement here

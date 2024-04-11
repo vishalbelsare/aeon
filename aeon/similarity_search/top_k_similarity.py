@@ -1,6 +1,6 @@
 """TopKSimilaritySearch."""
 
-__author__ = ["baraline"]
+__maintainer__ = []
 
 import warnings
 
@@ -19,22 +19,25 @@ class TopKSimilaritySearch(BaseSimiliaritySearch):
     ----------
     k : int, default=1
         The number of nearest matches from Q to return.
-    distance : str, default ="euclidean"
-        Name of the distance function to use.
-    distance_args : dict, default=None
-        Optional keyword arguments for the distance function.
-    normalize : bool, default = False
-        Whether the distance function should be z-normalized.
-    store_distance_profile : bool, default = =False.
-        Whether to store the computed distance profile in the attribute
-        "_distance_profile" after calling the predict method.
-    speed_up : str, default=None
-        Which speed up technique to use with for the selected distance
-        function.
+     distance : str, default="euclidean"
+         Name of the distance function to use. A list of valid strings can be found in
+         the documentation for :func:`aeon.distances.get_distance_function`.
+         If a callable is passed it must either be a python function or numba function
+         with nopython=True, that takes two 1d numpy arrays as input and returns a
+         float.
+     distance_args : dict, default=None
+         Optional keyword arguments for the distance function.
+     normalize : bool, default=False
+         Whether the distance function should be z-normalized.
+     store_distance_profile : bool, default=False.
+         Whether to store the computed distance profile in the attribute
+         "_distance_profile" after calling the predict method.
+     speed_up : str, default=None
+         Which speed up technique to use with for the selected distance function.
 
     Attributes
     ----------
-    _X : array, shape (n_instances, n_channels, n_timepoints)
+    _X : array, shape (n_cases, n_channels, n_timepoints)
         The input time series stored during the fit method.
     distance_profile_function : function
         The function used to compute the distance profile affected
@@ -75,7 +78,7 @@ class TopKSimilaritySearch(BaseSimiliaritySearch):
                 "integer superior or equal to 1"
             )
         self.k = k
-        super(TopKSimilaritySearch, self).__init__(
+        super().__init__(
             distance=distance,
             distance_args=distance_args,
             normalize=normalize,
@@ -89,7 +92,7 @@ class TopKSimilaritySearch(BaseSimiliaritySearch):
 
         Parameters
         ----------
-        X : array, shape (n_instances, n_channels, n_timepoints)
+        X : array, shape (n_cases, n_channels, n_timepoints)
             Input array to used as database for the similarity search.
         y : optional
             Not used.
@@ -109,7 +112,7 @@ class TopKSimilaritySearch(BaseSimiliaritySearch):
 
         Parameters
         ----------
-        distance_profile : array, shape (n_instances, n_timepoints - query_length + 1)
+        distance_profile : array, shape (n_cases, n_timepoints - query_length + 1)
             Precomputed distance profile.
         exclusion_size : int, optional
             The size of the exclusion zone used to prevent returning as top k candidates

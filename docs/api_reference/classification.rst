@@ -82,7 +82,6 @@ Feature-based
 
     Catch22Classifier
     FreshPRINCEClassifier
-    MatrixProfileClassifier
     SignatureClassifier
     SummaryClassifier
     TSFreshClassifier
@@ -98,6 +97,7 @@ Hybrid
 
     HIVECOTEV1
     HIVECOTEV2
+    RISTClassifier
 
 Interval-based
 --------------
@@ -114,6 +114,7 @@ Interval-based
     SupervisedTimeSeriesForest
     TimeSeriesForestClassifier
     RandomIntervalClassifier
+    QUANTClassifier
 
 Shapelet-based
 --------------
@@ -184,7 +185,6 @@ Composition
 
     ClassifierPipeline
     ChannelEnsembleClassifier
-    SklearnClassifierPipeline
     WeightedEnsembleClassifier
 
 

@@ -1,7 +1,7 @@
 """Implements the probabilistic Squaring Residuals forecaster."""
 
 __all__ = ["SquaringResiduals"]
-__author__ = ["kcc-lion"]
+__maintainer__ = []
 
 from warnings import warn
 
@@ -107,7 +107,7 @@ class SquaringResiduals(BaseForecaster):
         self.initial_window = initial_window
         self.distr = distr
         self.distr_kwargs = distr_kwargs
-        super(SquaringResiduals, self).__init__()
+        super().__init__()
 
         assert self.distr in ["norm", "laplace", "t", "cauchy"]
         assert self.strategy in ["square", "abs"]

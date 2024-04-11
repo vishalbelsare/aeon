@@ -5,7 +5,7 @@ Time Series Classification.
 
 """
 
-__author__ = ["patrickzib"]
+__maintainer__ = []
 __all__ = ["WEASEL_V2", "WEASELTransformerV2"]
 
 import numpy as np
@@ -142,7 +142,7 @@ class WEASEL_V2(BaseClassifier):
         self.clf = None
         self.n_jobs = n_jobs
 
-        super(WEASEL_V2, self).__init__()
+        super().__init__()
 
     def _fit(self, X, y):
         """Build a WEASEL classifiers from the training set (X, y).
@@ -150,9 +150,9 @@ class WEASEL_V2(BaseClassifier):
         Parameters
         ----------
         X : 3D np.ndarray
-            The training data shape = (n_instances, n_channels, n_timepoints).
+            The training data shape = (n_cases, n_channels, n_timepoints).
         y : 1D np.ndarray
-            The class labels shape = (n_instances).
+            The class labels shape = (n_cases).
 
         Returns
         -------
@@ -175,6 +175,7 @@ class WEASEL_V2(BaseClassifier):
         )
         words = self.transform.fit_transform(X, y)
 
+        # use RidgeClassifierCV for classification
         self.clf = RidgeClassifierCV(alphas=np.logspace(-1, 5, 10))
         self.clf.fit(words, y)
 
@@ -189,13 +190,13 @@ class WEASEL_V2(BaseClassifier):
         Parameters
         ----------
         X : 3D np.ndarray
-            The data to make predictions for, shape = (n_instances, n_channels,
+            The data to make predictions for, shape = (n_cases, n_channels,
             n_timepoints).
 
         Returns
         -------
         1D np.ndarray
-            Predicted class labels shape = (n_instances).
+            Predicted class labels shape = (n_cases).
         """
         bag = self.transform.transform(X)
         return self.clf.predict(bag)
@@ -205,23 +206,20 @@ class WEASEL_V2(BaseClassifier):
 
         Parameters
         ----------
-        X : 3D np.array of shape = [n_instances, n_channels, series_length]
+        X : 3D np.ndarray of shape = [n_cases, n_channels, n_timepoints]
             The data to make predict probabilities for.
 
         Returns
         -------
-        y : array-like, shape = [n_instances, n_classes_]
+        y : array-like, shape = [n_cases, n_classes_]
             Predicted probabilities using the ordering in classes_.
         """
         m = getattr(self.clf, "predict_proba", None)
         if callable(m):
-            return self.clf.predict_proba(X)
+            bag = self.transform.transform(X)
+            return self.clf.predict_proba(bag)
         else:
-            dists = np.zeros((X.shape[0], self.n_classes_))
-            preds = self._predict(X)
-            for i in range(0, X.shape[0]):
-                dists[i, np.where(self.classes_ == preds[i])] = 1
-            return dists
+            return super()._predict_proba(X)
 
     @classmethod
     def get_test_params(cls, parameter_set="default"):
@@ -323,8 +321,8 @@ class WEASELTransformerV2:
         self.max_window = MAX_WINDOW_LARGE
         self.ensemble_size = ENSEMBLE_SIZE_LARGE
         self.window_sizes = []
-        self.series_length_ = 0
-        self.n_instances_ = 0
+        self.n_timepoints_ = 0
+        self.n_cases_ = 0
 
         self.SFA_transformers = []
 
@@ -333,9 +331,9 @@ class WEASELTransformerV2:
 
         Parameters
         ----------
-        X : 3D np.array of shape = [n_instances, n_channels, series_length]
+        X : 3D np.ndarray of shape = [n_cases, n_channels, n_timepoints]
             The training data.
-        y : array-like, shape = [n_instances]
+        y : array-like, shape = [n_cases]
             The class labels.
 
         Returns
@@ -343,27 +341,27 @@ class WEASELTransformerV2:
         scipy csr_matrix, transformed features
         """
         # Window length parameter space dependent on series length
-        self.n_instances_, self.series_length_ = X.shape[0], X.shape[-1]
+        self.n_cases_, self.n_timepoints_ = X.shape[0], X.shape[-1]
         XX = X.squeeze(1)
 
         # avoid overfitting with too many features
-        if self.n_instances_ < SWITCH_SMALL_INSTANCES:
+        if self.n_cases_ < SWITCH_SMALL_INSTANCES:
             self.max_window = MAX_WINDOW_SMALL
             self.ensemble_size = ENSEMBLE_SIZE_SMALL
-        elif self.series_length_ < SWITCH_MEDIUM_LENGTH:
+        elif self.n_timepoints_ < SWITCH_MEDIUM_LENGTH:
             self.max_window = MAX_WINDOW_MEDIUM
             self.ensemble_size = ENSEMBLE_SIZE_MEDIUM
         else:
             self.max_window = MAX_WINDOW_LARGE
             self.ensemble_size = ENSEMBLE_SIZE_LARGE
 
-        self.max_window = int(min(self.series_length_, self.max_window))
+        self.max_window = int(min(self.n_timepoints_, self.max_window))
         if self.min_window > self.max_window:
             raise ValueError(
                 f"Error in WEASEL, min_window ="
                 f"{self.min_window} is bigger"
                 f" than max_window ={self.max_window},"
-                f" series length is {self.series_length_}"
+                f" series length is {self.n_timepoints_}"
                 f" try set min_window to be smaller than series length in "
                 f"the constructor, but the classifier may not work at "
                 f"all with very short series"
@@ -380,7 +378,7 @@ class WEASELTransformerV2:
                 self.window_sizes,
                 self.alphabet_sizes,
                 self.word_lengths,
-                self.series_length_,
+                self.n_timepoints_,
                 self.norm_options,
                 self.use_first_differences,
                 self.binning_strategies,
@@ -418,7 +416,7 @@ class WEASELTransformerV2:
 
         Parameters
         ----------
-        X : 3D np.array of shape = [n_instances, n_channels, series_length]
+        X : 3D np.ndarray of shape = [n_cases, n_channels, n_timepoints]
            The data to make predictions for.
         y : ignored argument for interface compatibility
 
@@ -450,7 +448,7 @@ def _parallel_fit(
     window_sizes,
     alphabet_sizes,
     word_lengths,
-    series_length,
+    n_timepoints,
     norm_options,
     use_first_differences,
     binning_strategies,
@@ -473,7 +471,7 @@ def _parallel_fit(
     window_size = rng.choice(window_sizes)
     dilation = np.maximum(
         1,
-        np.int32(2 ** rng.uniform(0, np.log2((series_length - 1) / (window_size - 1)))),
+        np.int32(2 ** rng.uniform(0, np.log2((n_timepoints - 1) / (window_size - 1)))),
     )
 
     alphabet_size = rng.choice(alphabet_sizes)

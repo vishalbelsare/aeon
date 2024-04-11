@@ -1,15 +1,15 @@
 """Implements pipelines for forecasting."""
 
-__author__ = ["mloning", "aiwalter"]
+__maintainer__ = []
 __all__ = ["TransformedTargetForecaster", "ForecastingPipeline", "ForecastX"]
 
 import pandas as pd
 
 from aeon.base import _HeterogenousMetaEstimator
-from aeon.datatypes import ALL_TIME_SERIES_MTYPES
 from aeon.forecasting.base._base import BaseForecaster
 from aeon.forecasting.base._delegate import _DelegatedForecaster
 from aeon.transformations.base import BaseTransformer
+from aeon.utils._data_types import ALL_TIME_SERIES_TYPES
 from aeon.utils.validation.series import check_series
 
 
@@ -381,7 +381,7 @@ class ForecastingPipeline(_Pipeline):
     def __init__(self, steps):
         self.steps = steps
         self.steps_ = self._check_steps(steps, allow_postproc=False)
-        super(ForecastingPipeline, self).__init__()
+        super().__init__()
         tags_to_clone = [
             "ignores-exogeneous-X",  # does estimator ignore the exogeneous X?
             "capability:pred_int",  # can the estimator produce prediction intervals?
@@ -793,7 +793,7 @@ class TransformedTargetForecaster(_Pipeline):
     def __init__(self, steps):
         self.steps = steps
         self.steps_ = self._check_steps(steps, allow_postproc=True)
-        super(TransformedTargetForecaster, self).__init__()
+        super().__init__()
 
         # set the tags based on forecaster
         tags_to_clone = [
@@ -1226,7 +1226,7 @@ class ForecastX(BaseForecaster):
         self.behaviour = behaviour
         self.columns = columns
 
-        super(ForecastX, self).__init__()
+        super().__init__()
 
         self.clone_tags(forecaster_y, "capability:pred_int")
 
@@ -1597,8 +1597,8 @@ class Permute(_DelegatedForecaster, BaseForecaster, _HeterogenousMetaEstimator):
 
     _tags = {
         "y_input_type": "both",
-        "y_inner_type": ALL_TIME_SERIES_MTYPES,
-        "X_inner_type": ALL_TIME_SERIES_MTYPES,
+        "y_inner_type": ALL_TIME_SERIES_TYPES,
+        "X_inner_type": ALL_TIME_SERIES_TYPES,
         "ignores-exogeneous-X": False,
         "requires-fh-in-fit": False,
         "capability:missing_values": True,
@@ -1613,7 +1613,7 @@ class Permute(_DelegatedForecaster, BaseForecaster, _HeterogenousMetaEstimator):
         self.permutation = permutation
         self.steps_arg = steps_arg
 
-        super(Permute, self).__init__()
+        super().__init__()
         tags_to_clone = [
             "ignores-exogeneous-X",  # does estimator ignore the exogeneous X?
             "capability:pred_int",  # can the estimator produce prediction intervals?

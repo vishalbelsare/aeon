@@ -1,6 +1,6 @@
 """Implements feature selection algorithms."""
 
-__author__ = ["aiwalter"]
+__maintainer__ = []
 __all__ = ["FeatureSelection"]
 
 import math
@@ -70,13 +70,12 @@ class FeatureSelection(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
-        "instancewise": True,  # is this an instance-wise transform?
+        # what abstract type is returned: Primitives, Series, Panel
+        "instancewise": True,
         "X_inner_type": ["pd.DataFrame", "pd.Series"],
-        # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "pd.DataFrame",  # which mtypes do _fit/_predict support for y?
+        "y_inner_type": "pd.DataFrame",
         "fit_is_empty": False,
         "transform-returns-same-time-index": True,
         "skip-inverse-transform": True,
@@ -97,7 +96,7 @@ class FeatureSelection(BaseTransformer):
         self.random_state = random_state
         self.columns = columns
 
-        super(FeatureSelection, self).__init__()
+        super().__init__()
 
     def _fit(self, X, y=None):
         """Fit transformer to X and y.

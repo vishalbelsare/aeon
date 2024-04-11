@@ -1,7 +1,7 @@
 """Implements VAR Model as interface to statsmodels."""
 
 __all__ = ["VAR"]
-__author__ = ["thayeylolu", "aiwalter", "lbventura"]
+__maintainer__ = []
 
 import itertools
 from collections import OrderedDict
@@ -103,7 +103,7 @@ class VAR(_StatsModelsAdapter):
         self.freq = freq
         self.ic = ic
 
-        super(VAR, self).__init__(random_state=random_state)
+        super().__init__(random_state=random_state)
 
     def _fit_forecaster(self, y, X=None):
         """Fit forecaster to training data.

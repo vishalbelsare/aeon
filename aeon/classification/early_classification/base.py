@@ -24,7 +24,7 @@ State:
 __all__ = [
     "BaseEarlyClassifier",
 ]
-__author__ = ["mloning", "fkiraly", "TonyBagnall", "MatthewMiddlehurst"]
+__maintainer__ = []
 
 import time
 from abc import ABC, abstractmethod
@@ -86,24 +86,24 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
         """
         self.state_info = None
 
-        super(BaseEarlyClassifier, self).__init__()
+        super().__init__()
 
     def fit(self, X, y):
         """Fit time series classifier to training data.
 
         Parameters
         ----------
-        X : 3D np.array
+        X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``. Other types are
             allowed and converted into one of the above.
         np.array
-            shape ``(n_instances)`` - class labels for fitting indices correspond to
+            shape ``(n_cases)`` - class labels for fitting indices correspond to
             instance indices in X.
 
         Returns
@@ -140,18 +140,18 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
 
         X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``
             other types are allowed and converted into one of the above.
 
         Returns
         -------
         y : np.array
-            shape ``[n_instances]`` - predicted class labels indices correspond to
+            shape ``[n_cases]`` - predicted class labels indices correspond to
             instance indices in X.
         decisions : 1D bool array
             An array of booleans, containing the decision of whether a prediction is
@@ -178,13 +178,13 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
 
         Parameters
         ----------
-        X : 3D np.array
+        X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``. other types are
             allowed and converted into one of the above.
 
@@ -219,13 +219,13 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
 
         Parameters
         ----------
-        X : 3D np.array
+        X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``. other types are
             allowed and converted into one of the above.
 
@@ -261,13 +261,13 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
 
         Parameters
         ----------
-        X : 3D np.array
+        X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``. other types are
             allowed and converted into one of the above.
 
@@ -294,13 +294,13 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
 
         Parameters
         ----------
-        X : 3D np.array
+        X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``. other types are
             allowed and converted into one of the above.
         y : 1D np.ndarray of int, of shape [n_cases] - class labels (ground truth)
@@ -366,13 +366,13 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
 
         Parameters
         ----------
-        X : 3D np.array
+        X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``. other types are
             allowed and converted into one of the above.
         y : 1D np.array of int, of shape [n_cases] - class labels for fitting
@@ -403,13 +403,13 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
 
         Parameters
         ----------
-        X : 3D np.array
+        X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``. other types are
             allowed and converted into one of the above.
 
@@ -438,13 +438,13 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
 
         Parameters
         ----------
-        X : 3D np.array
+        X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``. other types are
             allowed and converted into one of the above.
 
@@ -473,13 +473,13 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
 
         Parameters
         ----------
-        X : 3D np.array
+        X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``. other types are
             allowed and converted into one of the above.
 
@@ -519,13 +519,13 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
 
         Parameters
         ----------
-        X : 3D np.array
+        X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``. other types are
             allowed and converted into one of the above.
 
@@ -558,13 +558,13 @@ class BaseEarlyClassifier(BaseCollectionEstimator, ABC):
 
         Parameters
         ----------
-        X : 3D np.array
+        X : 3D np.ndarray
             Input data, any number of channels, equal length series of shape ``(
-            n_instances, n_channels, n_timepoints)``
+            n_cases, n_channels, n_timepoints)``
             or 2D np.array (univariate, equal length series) of shape
-            ``(n_instances, n_timepoints)``
+            ``(n_cases, n_timepoints)``
             or list of numpy arrays (any number of channels, unequal length series)
-            of shape ``[n_instances]``, 2D np.array ``(n_channels, n_timepoints_i)``,
+            of shape ``[n_cases]``, 2D np.array ``(n_channels, n_timepoints_i)``,
             where ``n_timepoints_i`` is length of series ``i``. other types are
             allowed and converted into one of the above.
         y : 1D np.array of int, of shape [n_cases] - class labels for fitting

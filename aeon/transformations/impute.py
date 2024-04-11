@@ -1,6 +1,6 @@
 """Transformer to impute missing values in series."""
 
-__author__ = ["aiwalter"]
+__maintainer__ = []
 __all__ = ["Imputer"]
 
 
@@ -80,21 +80,19 @@ class Imputer(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
+        # what abstract type is returned: Primitives, Series, Panel
         "instancewise": True,  # is this an instance-wise transform?
         "X_inner_type": ["pd.DataFrame"],
-        # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for y?
+        "y_inner_type": "None",
         "fit_is_empty": False,
         "capability:missing_values": True,
         "skip-inverse-transform": True,
         "capability:inverse_transform": True,
         "univariate-only": False,
         "capability:missing_values:removes": True,
-        # is transform result always guaranteed to contain no missing values?
-        "remember_data": False,  # remember all data seen as _X
+        "remember_data": False,
     }
 
     def __init__(
@@ -111,7 +109,7 @@ class Imputer(BaseTransformer):
 
         self.forecaster = forecaster
         self.random_state = random_state
-        super(Imputer, self).__init__()
+        super().__init__()
 
         # these methods require self._X remembered in _fit and _update
         if method in ["drift", "forecaster", "random"]:
@@ -124,10 +122,10 @@ class Imputer(BaseTransformer):
 
         Parameters
         ----------
-        X : Series or Panel of mtype X_inner_type
+        X: data structure of type X_inner_type
             if X_inner_type is list, _fit must support all types in it
             Data to fit transform to
-        y : Series or Panel of mtype y_inner_type, default=None
+        y : data structure of type y_inner_type, default=None
             Additional data, e.g., labels for transformation
 
         Returns
@@ -285,12 +283,14 @@ class Imputer(BaseTransformer):
                     .fillna(method="ffill")
                     .fillna(method="backfill")
                     .fillna(self.value),
-                    X=self._y[col]
-                    .fillna(method="ffill")
-                    .fillna(method="backfill")
-                    .fillna(self.value)
-                    if self._y is not None
-                    else None,
+                    X=(
+                        self._y[col]
+                        .fillna(method="ffill")
+                        .fillna(method="backfill")
+                        .fillna(self.value)
+                        if self._y is not None
+                        else None
+                    ),
                 )
 
                 # replace missing values with predicted values

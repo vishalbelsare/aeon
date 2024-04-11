@@ -8,7 +8,7 @@ import pandas as pd
 from aeon.forecasting.base.adapters import _StatsModelsAdapter
 
 _all_ = ["DynamicFactor"]
-__author__ = ["Ris-Bali", "lbventura"]
+__maintainer__ = []
 
 
 class DynamicFactor(_StatsModelsAdapter):
@@ -113,9 +113,9 @@ class DynamicFactor(_StatsModelsAdapter):
 
     Examples
     --------
-    >>> from aeon.utils._testing.series import _make_series
+    >>> from aeon.testing.utils.data_gen import make_series
     >>> from aeon.forecasting.dynamic_factor import DynamicFactor
-    >>> y = _make_series(n_columns=4)
+    >>> y = make_series(n_columns=4)
     >>> forecaster = DynamicFactor()  # doctest: +SKIP
     >>> forecaster.fit(y)  # doctest: +SKIP
     DynamicFactor(...)
@@ -185,7 +185,7 @@ class DynamicFactor(_StatsModelsAdapter):
         self.flags = flags
         self.low_memory = low_memory
 
-        super(DynamicFactor, self).__init__()
+        super().__init__()
 
     def _predict(self, fh, X=None):
         """Make forecasts.
@@ -259,7 +259,7 @@ class DynamicFactor(_StatsModelsAdapter):
                 Upper/lower interval end forecasts are equivalent to
                 quantile forecasts at alpha = 0.5 - c/2, 0.5 + c/2 for c in coverage.
         """
-        if type(coverage) is not list:
+        if not isinstance(coverage, list):
             coverage_list = [coverage]
         else:
             coverage_list = coverage

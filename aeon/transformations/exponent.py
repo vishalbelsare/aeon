@@ -1,6 +1,6 @@
 """Implements transformers raise time series to user provided exponent."""
 
-__author__ = ["Ryan Kuhns"]
+__maintainer__ = []
 __all__ = ["ExponentTransformer", "SqrtTransformer"]
 
 from warnings import warn
@@ -70,13 +70,12 @@ class ExponentTransformer(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
+        # what abstract type is returned: Primitives, Series, Panel
         "instancewise": True,  # is this an instance-wise transform?
         "X_inner_type": ["pd.DataFrame", "pd.Series"],
-        # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for y?
+        "y_inner_type": "None",
         "fit_is_empty": True,
         "transform-returns-same-time-index": True,
         "univariate-only": False,
@@ -98,7 +97,7 @@ class ExponentTransformer(BaseTransformer):
                 f"Expected `offset` to be int or float, but found {type(self.offset)}."
             )
 
-        super(ExponentTransformer, self).__init__()
+        super().__init__()
 
         if abs(power) < 1e-6:
             warn(

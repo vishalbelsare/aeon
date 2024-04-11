@@ -14,7 +14,7 @@ mtype(obj, as_scitype: str = None)
     infer the mtype of obj, considering it as as_scitype
 """
 
-__author__ = ["fkiraly"]
+__maintainer__ = []
 
 __all__ = [
     "check_is_mtype",
@@ -44,7 +44,7 @@ check_dict.update(check_dict_Proba)
 
 def _check_scitype_valid(scitype: str = None):
     """Check validity of scitype."""
-    valid_scitypes = list(set([x[1] for x in check_dict.keys()]))
+    valid_scitypes = list({x[1] for x in check_dict.keys()})
 
     if not isinstance(scitype, str):
         raise TypeError(f"scitype should be a str but found {type(scitype)}")
@@ -102,7 +102,7 @@ def check_is_mtype(
     ----------
     obj - object to check
     mtype: str or list of str, mtype to check obj as
-        valid mtype strings are in datatypes.MTYPE_REGISTER (1st column)
+        valid mtype strings are in datatypes.TYPE_REGISTER (1st column)
     scitype: str, optional, scitype to check obj as; default = inferred from mtype
         if inferred from mtype, list elements of mtype need not have same scitype
         valid mtype strings are in datatypes.DATATYPE_REGISTER (1st column)
@@ -135,12 +135,12 @@ def check_is_mtype(
             "is_empty": bool, True iff one or more of the series in the panel are empty
             "is_one_series": bool, True iff there is only one series in the panel
             "has_nans": bool, True iff the panel contains NaN values
-            "n_instances": int, number of instances in the panel
+            "n_cases": int, number of instances in the panel
         For scitype "Table":
             "is_univariate": bool, True iff table has one variable
             "is_empty": bool, True iff table has no variables or no instances
             "has_nans": bool, True iff the panel contains NaN values
-            "n_instances": int, number of instances/rows in the table
+            "n_cases": int, number of instances/rows in the table
 
     Raises
     ------
@@ -212,7 +212,7 @@ def check_raise(obj, mtype: str, scitype: str = None, var_name: str = "input"):
     ----------
     obj - object to check
     mtype: str or list of str, mtype to check obj as
-        valid mtype strings are in datatypes.MTYPE_REGISTER (1st column)
+        valid mtype strings are in datatypes.TYPE_REGISTER (1st column)
     scitype: str, optional, scitype to check obj as; default = inferred from mtype
         if inferred from mtype, list elements of mtype need not have same scitype
         valid mtype strings are in datatypes.DATATYPE_REGISTER (1st column)
@@ -268,7 +268,7 @@ def mtype(
     -------
     str - the inferred mtype of "obj", a valid mtype string
             or None, if obj is None
-        mtype strings with explanation are in datatypes.MTYPE_REGISTER
+        mtype strings with explanation are in datatypes.TYPE_REGISTER
 
     Raises
     ------
@@ -363,7 +363,7 @@ def check_is_scitype(
         Fields depend on scitpe.
         Always returned:
             "mtype": str, mtype of obj (assumed or inferred)
-                mtype strings with explanation are in datatypes.MTYPE_REGISTER
+                mtype strings with explanation are in datatypes.TYPE_REGISTER
             "scitype": str, scitype of obj (assumed or inferred)
                 scitype strings with explanation are in datatypes.DATATYPE_REGISTER
         For scitype "Series":
@@ -378,7 +378,7 @@ def check_is_scitype(
             "is_empty": bool, True iff one or more of the series in the panel are empty
             "is_one_series": bool, True iff there is only one series in the panel
             "has_nans": bool, True iff the panel contains NaN values
-            "n_instances": int, number of instances in the panel
+            "n_cases": int, number of instances in the panel
         For scitype "Table":
             "is_univariate": bool, True iff table has one variable
             "is_empty": bool, True iff table has no variables or no instances
@@ -451,7 +451,7 @@ def scitype(obj, candidate_scitypes=SCITYPE_LIST, exclude_mtypes=AMBIGUOUS_MTYPE
         valid scitype strings are in datatypes.DATATYPE_REGISTER
     exclude_mtypes : list of str, default = AMBIGUOUS_MTYPES
         which mtypes to ignore in inferring mtype, default = ambiguous ones
-        valid mtype strings are in datatypes.MTYPE_REGISTER
+        valid mtype strings are in datatypes.TYPE_REGISTER
 
     Returns
     -------

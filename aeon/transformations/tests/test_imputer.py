@@ -1,6 +1,6 @@
 """Unit tests of Imputer functionality."""
 
-__author__ = ["aiwalter"]
+__maintainer__ = []
 __all__ = []
 
 import numpy as np
@@ -9,8 +9,8 @@ import pytest
 
 from aeon.forecasting.model_selection import temporal_train_test_split
 from aeon.forecasting.naive import NaiveForecaster
+from aeon.testing.utils.data_gen import make_forecasting_problem
 from aeon.transformations.impute import Imputer
-from aeon.utils._testing.forecasting import make_forecasting_problem
 
 y, X = make_forecasting_problem(make_X=True)
 

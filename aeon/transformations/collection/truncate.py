@@ -1,7 +1,7 @@
 """Truncation transformer - truncate unequal length panels to lower/upper bounds."""
 
 __all__ = ["TruncationTransformer"]
-__author__ = ["abostrom", "TonyBagnall"]
+__maintainer__ = []
 
 import numpy as np
 
@@ -43,7 +43,7 @@ class TruncationTransformer(BaseCollectionTransformer):
 
     def __init__(self, truncated_length=None):
         self.truncated_length = truncated_length
-        super(TruncationTransformer, self).__init__()
+        super().__init__()
 
     @staticmethod
     def _get_min_length(X):

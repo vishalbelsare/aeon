@@ -132,8 +132,8 @@ remove_from_toctrees = ["api_reference/auto_generated/*"]
 # the corresponding warning that this override happens.
 suppress_warnings = ["myst.mathjax"]
 
-# Recommended by sphinx_design when using the MyST Parser
-myst_enable_extensions = ["colon_fence", "html_image"]
+# "colon_fence" and "html_image" recommended by sphinx_design when using the MyST Parser
+myst_enable_extensions = ["colon_fence", "html_image", "attrs_inline"]
 
 myst_heading_anchors = 4
 
@@ -171,7 +171,7 @@ def linkcode_resolve(domain, info):
         filename = "aeon/%s#L%d-L%d" % find_source()
     except Exception:
         filename = info["module"].replace(".", "/") + ".py"
-    return "https://github.com/aeon-toolkit/aeon/blob/%s/%s" % (
+    return "https://github.com/aeon-toolkit/aeon/blob/{}/{}".format(
         github_tag,
         filename,
     )

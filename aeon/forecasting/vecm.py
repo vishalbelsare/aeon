@@ -1,8 +1,7 @@
 """VECM Forecaster."""
 
-
 __all__ = ["VECM"]
-__author__ = ["thayeylolu", "AurumnPegasus"]
+__maintainer__ = []
 
 import numpy as np
 import pandas as pd
@@ -110,7 +109,7 @@ class VECM(_StatsModelsAdapter):
         self.exog_coint = exog_coint
         self.exog_coint_fc = exog_coint_fc
 
-        super(VECM, self).__init__()
+        super().__init__()
 
     def _fit(self, y, fh=None, X=None):
         """

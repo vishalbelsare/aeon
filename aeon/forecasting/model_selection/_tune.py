@@ -1,6 +1,6 @@
 """Implements grid search functionality to tune forecasters."""
 
-__author__ = ["mloning"]
+__maintainer__ = []
 __all__ = ["ForecastingGridSearchCV", "ForecastingRandomizedSearchCV"]
 
 from collections.abc import Sequence
@@ -9,10 +9,10 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import ParameterGrid, ParameterSampler, check_cv
 
-from aeon.datatypes import mtype_to_scitype
 from aeon.exceptions import NotFittedError
 from aeon.forecasting.base._delegate import _DelegatedForecaster
 from aeon.forecasting.model_evaluation import evaluate
+from aeon.utils.validation import abstract_types
 from aeon.utils.validation.forecasting import check_scoring
 
 
@@ -52,7 +52,7 @@ class BaseGridSearch(_DelegatedForecaster):
         self.return_n_best_forecasters = return_n_best_forecasters
         self.update_behaviour = update_behaviour
         self.error_score = error_score
-        super(BaseGridSearch, self).__init__()
+        super().__init__()
         tags_to_clone = [
             "requires-fh-in-fit",
             "capability:pred_int",
@@ -90,12 +90,12 @@ class BaseGridSearch(_DelegatedForecaster):
         tagval = self.get_tag(tagname)
         if not isinstance(tagval, list):
             tagval = [tagval]
-        scitypes = mtype_to_scitype(tagval, return_unique=True)
-        if "Series" not in scitypes:
+        abs_types = abstract_types(tagval)
+        if "Series" not in abs_types:
             tagval = tagval + ["pd.DataFrame"]
-        if "Panel" not in scitypes:
+        if "Panel" not in abs_types:
             tagval = tagval + ["pd-multiindex"]
-        if "Hierarchical" not in scitypes:
+        if "Hierarchical" not in abs_types:
             tagval = tagval + ["pd_multiindex_hier"]
         self.set_tags(**{tagname: tagval})
 
@@ -141,7 +141,7 @@ class BaseGridSearch(_DelegatedForecaster):
         cv = check_cv(self.cv)
 
         scoring = check_scoring(self.scoring)
-        scoring_name = f"test_{scoring.name}"
+        scoring_name = f"test_{scoring.__name__}"
 
         def _fit_and_score(params):
             # Clone forecaster.
@@ -183,8 +183,8 @@ class BaseGridSearch(_DelegatedForecaster):
                 n_candidates = len(candidate_params)
                 n_splits = cv.get_n_splits(y)
                 print(  # noqa
-                    "Fitting {0} folds for each of {1} candidates,"
-                    " totalling {2} fits".format(
+                    "Fitting {} folds for each of {} candidates,"
+                    " totalling {} fits".format(
                         n_splits, n_candidates, n_candidates * n_splits
                     )
                 )
@@ -208,7 +208,7 @@ class BaseGridSearch(_DelegatedForecaster):
 
         # Rank results, according to whether greater is better for the given scoring.
         results[f"rank_{scoring_name}"] = results.loc[:, f"mean_{scoring_name}"].rank(
-            ascending=scoring.get_tag("lower_is_better")
+            ascending=True
         )
 
         self.cv_results_ = results
@@ -231,9 +231,7 @@ class BaseGridSearch(_DelegatedForecaster):
             self.best_forecaster_.fit(y, X, fh)
 
         # Sort values according to rank
-        results = results.sort_values(
-            by=f"rank_{scoring_name}", ascending=scoring.get_tag("lower_is_better")
-        )
+        results = results.sort_values(by=f"rank_{scoring_name}", ascending=True)
         # Select n best forecaster
         self.n_best_forecasters_ = []
         self.n_best_scores_ = []
@@ -327,7 +325,7 @@ class ForecastingGridSearchCV(BaseGridSearch):
         Model tuning parameters of the forecaster to evaluate
     scoring: function, optional (default=None)
         Function to score models for evaluation of optimal parameters. If None,
-        then MeanAbsolutePercentageError() is used.
+        then mean_absolute_percentage_error is used.
     n_jobs: int, optional (default=None)
         Number of jobs to run in parallel if backend either "loky",
         "multiprocessing" or "threading".
@@ -464,7 +462,7 @@ class ForecastingGridSearchCV(BaseGridSearch):
         update_behaviour="full_refit",
         error_score=np.nan,
     ):
-        super(ForecastingGridSearchCV, self).__init__(
+        super().__init__(
             forecaster=forecaster,
             scoring=scoring,
             n_jobs=n_jobs,
@@ -492,15 +490,15 @@ class ForecastingGridSearchCV(BaseGridSearch):
 
                 if isinstance(v, str) or not isinstance(v, (np.ndarray, Sequence)):
                     raise ValueError(
-                        "Parameter grid for parameter ({0}) needs to"
-                        " be a list or numpy array, but got ({1})."
+                        "Parameter grid for parameter ({}) needs to"
+                        " be a list or numpy array, but got ({})."
                         " Single values need to be wrapped in a list"
                         " with one element.".format(name, type(v))
                     )
 
                 if len(v) == 0:
                     raise ValueError(
-                        "Parameter values for parameter ({0}) need "
+                        "Parameter values for parameter ({}) need "
                         "to be a non-empty sequence.".format(name)
                     )
 
@@ -526,19 +524,19 @@ class ForecastingGridSearchCV(BaseGridSearch):
         from aeon.forecasting.model_selection._split import SingleWindowSplitter
         from aeon.forecasting.naive import NaiveForecaster
         from aeon.forecasting.trend import PolynomialTrendForecaster
-        from aeon.performance_metrics.forecasting import MeanAbsolutePercentageError
+        from aeon.performance_metrics.forecasting import mean_absolute_error
 
         params = {
             "forecaster": NaiveForecaster(strategy="mean"),
             "cv": SingleWindowSplitter(fh=1),
             "param_grid": {"window_length": [2, 5]},
-            "scoring": MeanAbsolutePercentageError(symmetric=True),
+            "scoring": mean_absolute_error,
         }
         params2 = {
             "forecaster": PolynomialTrendForecaster(),
             "cv": SingleWindowSplitter(fh=1),
             "param_grid": {"degree": [1, 2]},
-            "scoring": MeanAbsolutePercentageError(symmetric=True),
+            "scoring": mean_absolute_error,
             "update_behaviour": "inner_only",
         }
         return [params, params2]
@@ -589,7 +587,7 @@ class ForecastingRandomizedSearchCV(BaseGridSearch):
         off runtime vs quality of the solution.
     scoring: function, optional (default=None)
         Function to score models for evaluation of optimal parameters. If None,
-        then MeanAbsolutePercentageError() is used.
+        then mean_absolute_percentage_error is used.
     n_jobs: int, optional (default=None)
         Number of jobs to run in parallel if backend either "loky",
         "multiprocessing" or "threading".
@@ -659,7 +657,7 @@ class ForecastingRandomizedSearchCV(BaseGridSearch):
         update_behaviour="full_refit",
         error_score=np.nan,
     ):
-        super(ForecastingRandomizedSearchCV, self).__init__(
+        super().__init__(
             forecaster=forecaster,
             scoring=scoring,
             strategy=strategy,
@@ -702,20 +700,17 @@ class ForecastingRandomizedSearchCV(BaseGridSearch):
         from aeon.forecasting.model_selection._split import SingleWindowSplitter
         from aeon.forecasting.naive import NaiveForecaster
         from aeon.forecasting.trend import PolynomialTrendForecaster
-        from aeon.performance_metrics.forecasting import MeanAbsolutePercentageError
 
         params = {
             "forecaster": NaiveForecaster(strategy="mean"),
             "cv": SingleWindowSplitter(fh=1),
             "param_distributions": {"window_length": [2, 5]},
-            "scoring": MeanAbsolutePercentageError(symmetric=True),
         }
 
         params2 = {
             "forecaster": PolynomialTrendForecaster(),
             "cv": SingleWindowSplitter(fh=1),
             "param_distributions": {"degree": [1, 2]},
-            "scoring": MeanAbsolutePercentageError(symmetric=True),
             "update_behaviour": "inner_only",
         }
 

@@ -1,4 +1,5 @@
 """Tests for time series k-means."""
+
 import numpy as np
 import pytest
 from sklearn import metrics
@@ -263,7 +264,7 @@ def check_value_in_every_cluster(num_clusters, initial_centres):
 
 
 def test_means_init():
-    """Test implementation of Kmedoids."""
+    """Test implementation of Kmeans."""
     X_train, _ = load_gunpoint(split="train")
     custom_init_centres = X_train[[12, 13]]
     X_train = X_train[:10]
@@ -303,6 +304,7 @@ def test_means_init():
 
 
 def test_custom_distance_params():
+    """Test kmeans custom distance parameters."""
     X_train, y_train = load_basic_motions(split="train")
 
     num_test_values = 10

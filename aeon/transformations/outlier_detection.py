@@ -1,6 +1,6 @@
 """Implements transformers for detecting outliers in a time series."""
 
-__author__ = ["aiwalter"]
+__maintainer__ = []
 __all__ = ["HampelFilter"]
 
 import warnings
@@ -51,13 +51,12 @@ class HampelFilter(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
+        # what abstract type is returned: Primitives, Series, Panel
         "instancewise": True,  # is this an instance-wise transform?
         "X_inner_type": ["pd.DataFrame", "pd.Series"],
-        # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for y?
+        "y_inner_type": "None",
         "fit_is_empty": True,
         "capability:missing_values": True,
         "skip-inverse-transform": True,
@@ -69,7 +68,7 @@ class HampelFilter(BaseTransformer):
         self.n_sigma = n_sigma
         self.k = k
         self.return_bool = return_bool
-        super(HampelFilter, self).__init__()
+        super().__init__()
 
     def _transform(self, X, y=None):
         """Transform X and return a transformed version.

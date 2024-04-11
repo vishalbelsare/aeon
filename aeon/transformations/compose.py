@@ -7,18 +7,13 @@ import pandas as pd
 from sklearn import clone
 
 from aeon.base import _HeterogenousMetaEstimator
-from aeon.datatypes import ALL_TIME_SERIES_MTYPES
 from aeon.transformations._delegate import _DelegatedTransformer
 from aeon.transformations.base import BaseTransformer
 from aeon.utils.multiindex import flatten_multiindex
-from aeon.utils.sklearn import (
-    is_sklearn_classifier,
-    is_sklearn_regressor,
-    is_sklearn_transformer,
-)
+from aeon.utils.sklearn import is_sklearn_regressor, is_sklearn_transformer
 from aeon.utils.validation.series import check_series
 
-__author__ = ["fkiraly", "mloning", "miraep8", "aiwalter", "SveaMeyer13"]
+__maintainer__ = []
 __all__ = [
     "ColumnwiseTransformer",
     "ColumnConcatenator",
@@ -31,21 +26,7 @@ __all__ = [
     "TransformerPipeline",
     "YtoX",
 ]
-
-
-# mtypes for Series, Panel, Hierarchical,
-# with exception of some ambiguous and discouraged mtypes
-CORE_MTYPES = [
-    "pd.DataFrame",
-    "np.ndarray",
-    "pd.Series",
-    "pd-multiindex",
-    "df-list",
-    "nested_univ",
-    "numpy3D",
-    "np-list",
-    "pd_multiindex_hier",
-]
+from aeon.utils import ALL_TIME_SERIES_TYPES
 
 
 def _coerce_to_aeon(other):
@@ -158,7 +139,7 @@ class TransformerPipeline(_HeterogenousMetaEstimator, BaseTransformer):
 
     _tags = {
         # we let all X inputs through to be handled by first transformer
-        "X_inner_type": CORE_MTYPES,
+        "X_inner_type": ALL_TIME_SERIES_TYPES,
         "univariate-only": False,
     }
 
@@ -179,14 +160,13 @@ class TransformerPipeline(_HeterogenousMetaEstimator, BaseTransformer):
         self.steps = steps
         self.steps_ = self._check_estimators(self.steps, cls_type=BaseTransformer)
 
-        super(TransformerPipeline, self).__init__()
+        super().__init__()
 
         # abbreviate for readability
         ests = self.steps_
         first_trafo = ests[0][1]
         last_trafo = ests[-1][1]
 
-        # input mtype and input type are as of the first estimator
         self.clone_tags(first_trafo, ["input_data_type"])
         # output type is that of last estimator, if no "Primitives" occur in the middle
         # if "Primitives" occur in the middle, then output is set to that too
@@ -248,14 +228,9 @@ class TransformerPipeline(_HeterogenousMetaEstimator, BaseTransformer):
         TransformerPipeline object, concatenation of `self` (first) with `other` (last).
             not nested, contains only non-TransformerPipeline `aeon` transformers
         """
-        from aeon.classification.compose import SklearnClassifierPipeline
         from aeon.regression.compose import SklearnRegressorPipeline
 
         other = _coerce_to_aeon(other)
-
-        # if sklearn classifier, use sklearn classifier pipeline
-        if is_sklearn_classifier(other):
-            return SklearnClassifierPipeline(classifier=other, transformers=self.steps)
 
         # if sklearn regressor, use sklearn regressor pipeline
         if is_sklearn_regressor(other):
@@ -300,7 +275,7 @@ class TransformerPipeline(_HeterogenousMetaEstimator, BaseTransformer):
 
         Parameters
         ----------
-        X : Series or Panel of mtype X_inner_type
+        X: data structure of type X_inner_type
             if X_inner_type is list, _fit must support all types in it
             Data to fit transform to
         y : Series or Panel of type y_inner_type, default=None
@@ -325,7 +300,7 @@ class TransformerPipeline(_HeterogenousMetaEstimator, BaseTransformer):
 
         Parameters
         ----------
-        X : Series or Panel of mtype X_inner_type
+        X: data structure of type X_inner_type
             if X_inner_type is list, _transform must support all types in it
             Data to be transformed
         y : Series or Panel of type y_inner_type, default=None
@@ -351,7 +326,7 @@ class TransformerPipeline(_HeterogenousMetaEstimator, BaseTransformer):
 
         Parameters
         ----------
-        X : Series or Panel of mtype X_inner_type
+        X: data structure of type X_inner_type
             if X_inner_type is list, _inverse_transform must support all types in it
             Data to be inverse transformed
         y : Series or Panel of type y_inner_type, optional (default=None)
@@ -377,7 +352,7 @@ class TransformerPipeline(_HeterogenousMetaEstimator, BaseTransformer):
 
         Parameters
         ----------
-        X : Series or Panel of mtype X_inner_type
+        X: data structure of type X_inner_type
             if X_inner_type is list, _update must support all types in it
             Data to update transformer with
         y : Series or Panel of type y_inner_type, default=None
@@ -458,7 +433,7 @@ class FeatureUnion(_HeterogenousMetaEstimator, BaseTransformer):
     flatten_transform_index : bool, optional (default=True)
         if True, columns of return DataFrame are flat, by "transformer__variablename"
         if False, columns are MultiIndex (transformer, variablename)
-        has no effect if return mtype is one without column names
+        has no effect if return type is one without column names
     """
 
     _tags = {
@@ -506,7 +481,7 @@ class FeatureUnion(_HeterogenousMetaEstimator, BaseTransformer):
         self.transformer_weights = transformer_weights
         self.flatten_transform_index = flatten_transform_index
 
-        super(FeatureUnion, self).__init__()
+        super().__init__()
 
         # abbreviate for readability
         ests = self.transformer_list_
@@ -586,7 +561,7 @@ class FeatureUnion(_HeterogenousMetaEstimator, BaseTransformer):
 
         Parameters
         ----------
-        X : pd.DataFrame, Series, Panel, or Hierarchical mtype format
+        X : pd.DataFrame
             Data to fit transform to
         y : Series or Panel of type y_inner_type, default=None
             Additional data, e.g., labels for transformation
@@ -611,7 +586,7 @@ class FeatureUnion(_HeterogenousMetaEstimator, BaseTransformer):
 
         Parameters
         ----------
-        X : pd.DataFrame, Series, Panel, or Hierarchical mtype format
+        X : pd.DataFrame
             Data to be transformed
         y : Series or Panel of type y_inner_type, default=None
             Additional data, e.g., labels for transformation
@@ -716,7 +691,7 @@ class FitInTransform(BaseTransformer):
     def __init__(self, transformer, skip_inverse_transform=True):
         self.transformer = transformer
         self.skip_inverse_transform = skip_inverse_transform
-        super(FitInTransform, self).__init__()
+        super().__init__()
         self.clone_tags(transformer, None)
         self.set_tags(
             **{
@@ -732,7 +707,7 @@ class FitInTransform(BaseTransformer):
 
         Parameters
         ----------
-        X : Series or Panel of mtype X_inner_type
+        X: data structure of type X_inner_type
             if X_inner_type is list, _transform must support all types in it
             Data to be transformed
         y : Series or Panel of type y_inner_type, default=None
@@ -751,7 +726,7 @@ class FitInTransform(BaseTransformer):
 
         Parameters
         ----------
-        X : Series or Panel of mtype X_inner_type
+        X: data structure of type X_inner_type
             if X_inner_type is list, _inverse_transform must support all types in it
             Data to be inverse transformed
         y : Series or Panel of type y_inner_type, optional (default=None)
@@ -883,7 +858,23 @@ class MultiplexTransformer(_HeterogenousMetaEstimator, _DelegatedTransformer):
     _tags = {
         "fit_is_empty": False,
         "univariate-only": False,
-        "X_inner_type": ALL_TIME_SERIES_MTYPES,
+        "X_inner_type": [
+            "dask_panel",
+            "pd-multiindex",
+            "pd-long",
+            "df-list",
+            "xr.DataArray",
+            "pd_multiindex_hier",
+            "numpy3D",
+            "np-list",
+            "pd.DataFrame",
+            "pd.Series",
+            "dask_hierarchical",
+            "np.ndarray",
+            "dask_series",
+            "nested_univ",
+            "pd-wide",
+        ],
     }
 
     # attribute for _DelegatedTransformer, which then delegates
@@ -906,7 +897,7 @@ class MultiplexTransformer(_HeterogenousMetaEstimator, _DelegatedTransformer):
         transformers: list,
         selected_transformer=None,
     ):
-        super(MultiplexTransformer, self).__init__()
+        super().__init__()
         self.selected_transformer = selected_transformer
 
         self.transformers = transformers
@@ -920,7 +911,7 @@ class MultiplexTransformer(_HeterogenousMetaEstimator, _DelegatedTransformer):
         self.clone_tags(self.transformer_)
         self.set_tags(**{"fit_is_empty": False})
         # this ensures that we convert in the inner estimator, not in the multiplexer
-        self.set_tags(**{"X_inner_type": ALL_TIME_SERIES_MTYPES})
+        self.set_tags(**{"X_inner_type": ALL_TIME_SERIES_TYPES})
 
     @property
     def _transformers(self):
@@ -1070,13 +1061,12 @@ class InvertTransform(_DelegatedTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
+        # what abstract type is returned: Primitives, Series, Panel
         "instancewise": True,  # is this an instance-wise transform?
         "X_inner_type": ["pd.DataFrame", "pd.Series"],
-        # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for y?
+        "y_inner_type": "None",
         "univariate-only": False,
         "fit_is_empty": False,
         "capability:inverse_transform": True,
@@ -1085,7 +1075,7 @@ class InvertTransform(_DelegatedTransformer):
     def __init__(self, transformer):
         self.transformer = transformer
 
-        super(InvertTransform, self).__init__()
+        super().__init__()
 
         self.transformer_ = transformer.clone()
 
@@ -1203,9 +1193,8 @@ class Id(BaseTransformer):
     _tags = {
         "capability:inverse_transform": True,  # can the transformer inverse transform?
         "univariate-only": False,  # can the transformer handle multivariate X?
-        "X_inner_type": CORE_MTYPES,  # which mtypes do _fit/_predict support for X?
-        # this can be a Panel mtype even if transform-input is Series, vectorized
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for y?
+        "X_inner_type": ALL_TIME_SERIES_TYPES,
+        "y_inner_type": "None",
         "fit_is_empty": True,  # is fit empty and can be skipped? Yes = True
         "transform-returns-same-time-index": True,
         # does transform return have the same time index as input X
@@ -1326,13 +1315,12 @@ class OptionalPassthrough(_DelegatedTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
-        "instancewise": True,  # is this an instance-wise transform?
-        "X_inner_type": CORE_MTYPES,
-        # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for y?
+        # what abstract type is returned: Primitives, Series, Panel
+        "instancewise": True,
+        "X_inner_type": ALL_TIME_SERIES_TYPES,
+        "y_inner_type": "None",
         "univariate-only": False,
         "fit_is_empty": False,
         "capability:inverse_transform": True,
@@ -1342,7 +1330,7 @@ class OptionalPassthrough(_DelegatedTransformer):
         self.transformer = transformer
         self.passthrough = passthrough
 
-        super(OptionalPassthrough, self).__init__()
+        super().__init__()
 
         # should be all tags, but not fit_is_empty
         #   (_fit should not be skipped)
@@ -1432,13 +1420,12 @@ class ColumnwiseTransformer(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
+        # what abstract type is returned: Primitives, Series, Panel
         "instancewise": True,  # is this an instance-wise transform?
         "X_inner_type": "pd.DataFrame",
-        # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for y?
+        "y_inner_type": "None",
         "univariate-only": False,
         "fit_is_empty": False,
     }
@@ -1446,7 +1433,7 @@ class ColumnwiseTransformer(BaseTransformer):
     def __init__(self, transformer, columns=None):
         self.transformer = transformer
         self.columns = columns
-        super(ColumnwiseTransformer, self).__init__()
+        super().__init__()
 
         tags_to_clone = [
             "y_inner_type",
@@ -1639,14 +1626,13 @@ class ColumnConcatenator(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
-        "instancewise": False,  # is this an instance-wise transform?
+        # what abstract type is returned: Primitives, Series, Panel
+        "instancewise": False,
         "X_inner_type": ["pd-multiindex", "pd_multiindex_hier"],
-        # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for X?
-        "fit_is_empty": True,  # is fit empty and can be skipped? Yes = True
+        "y_inner_type": "None",
+        "fit_is_empty": True,
     }
 
     def _transform(self, X, y=None):
@@ -1710,7 +1696,7 @@ class YtoX(BaseTransformer):
     def __init__(self, subset_index=False):
         self.subset_index = subset_index
 
-        super(YtoX, self).__init__()
+        super().__init__()
 
     def _transform(self, X, y=None):
         """Transform X and return a transformed version.
@@ -1740,7 +1726,7 @@ class YtoX(BaseTransformer):
 
         Parameters
         ----------
-        X : Series or Panel of mtype X_inner_type
+        X: data structure of type X_inner_type
             if X_inner_type is list, _inverse_transform must support all types in it
             Data to be inverse transformed
         y : Series or Panel of type y_inner_type, optional (default=None)

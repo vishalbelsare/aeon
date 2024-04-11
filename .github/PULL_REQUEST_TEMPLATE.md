@@ -1,6 +1,6 @@
 <!--
 Thanks for contributing a pull request! Please ensure you have taken a look at our
-contribution guide: https://github.com/aeon-toolkit/aeon/blob/main/CONTRIBUTING.md
+contribution guide: https://www.aeon-toolkit.org/en/stable/contributing.html
 
 Feel free to delete sections of this template if they do not apply to your PR,
 avoid submitting a blank template or empty sections.
@@ -52,9 +52,10 @@ Please go through the checklist below. Please feel free to remove points if they
 
 ##### For new estimators and functions
 - [ ] I've added the estimator to the online [API documentation](https://www.aeon-toolkit.org/en/latest/api_reference.html).
+- [ ] (OPTIONAL) I've added myself as a `__maintainer__` at the top of relevant files and want to be contacted regarding its maintenance. Unmaintained files may be removed. This is for the full file, and you should not add yourself if you are just making minor changes or do not want to help maintain its contents.
 
 ##### For developers with write access
-- [ ] Optionally, I've updated aeon's [CODEOWNERS](https://github.com/aeon-toolkit/aeon/blob/main/CODEOWNERS) to receive notifications about future changes to these files.
+- [ ] (OPTIONAL) I've updated aeon's [CODEOWNERS](https://github.com/aeon-toolkit/aeon/blob/main/CODEOWNERS) to receive notifications about future changes to these files.
 
 
 <!--

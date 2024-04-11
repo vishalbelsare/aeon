@@ -5,7 +5,7 @@ and a transformer which is an adapter for the external package
 FilterPy.
 """
 
-__author__ = ["NoaBenAmi", "lielleravid", "hadifawaz1999", "lmmentel"]
+__maintainer__ = []
 __all__ = [
     "BaseKalmanFilter",
     "KalmanFilterTransformer",
@@ -207,7 +207,7 @@ class BaseKalmanFilter:
         # P0
         self.initial_state_covariance = initial_state_covariance
 
-        super(BaseKalmanFilter, self).__init__()
+        super().__init__()
 
     def _get_shapes(self, state_dim, measurement_dim):
         """Return dictionary with default shape of each matrix parameter.
@@ -443,16 +443,12 @@ class KalmanFilterTransformer(BaseKalmanFilter, BaseTransformer):
 
     _tags = {
         "transform_labels": "Series",
-        # what is the scitype of y: None (not needed), Primitives, Series, Panel
-        "X_inner_type": "np.ndarray",  # which mtypes do _fit/_predict support for X?
-        # this can be a Panel mtype even if transform-input is Series, vectorized
-        "y_inner_type": "np.ndarray",  # which mtypes do _fit/_predict support for y?
-        "fit_is_empty": False,  # is fit empty and can be skipped? Yes = True
+        "X_inner_type": "np.ndarray",
+        "y_inner_type": "np.ndarray",
+        "fit_is_empty": False,
         "capability:unequal_length": False,
-        # can the transformer handle unequal length time series (if passed Panel)?
         "capability:missing_values": True,  # can estimator handle missing data?
         "capability:missing_values:removes": False,
-        # is transform result always guaranteed to contain no missing values?
         "instancewise": True,  # is this an instance-wise transform?
         "python_dependencies": ["filterpy", "numpy<1.24.0"],
     }
@@ -470,7 +466,7 @@ class KalmanFilterTransformer(BaseKalmanFilter, BaseTransformer):
         estimate_matrices=None,
         denoising=False,
     ):
-        super(KalmanFilterTransformer, self).__init__(
+        super().__init__(
             state_dim=state_dim,
             state_transition=state_transition,
             process_noise=process_noise,

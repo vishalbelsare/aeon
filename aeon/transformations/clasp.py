@@ -12,7 +12,7 @@ As described in
 }
 """
 
-__author__ = ["ermshaua", "patrickzib"]
+__maintainer__ = []
 __all__ = ["ClaSPTransformer"]
 
 import warnings
@@ -392,12 +392,12 @@ class ClaSPTransformer(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
-        "instancewise": True,  # is this an instance-wise transform?
-        "X_inner_type": "np.ndarray",  # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for y?
+        # what abstract type is returned: Primitives, Series, Panel
+        "instancewise": True,
+        "X_inner_type": "np.ndarray",
+        "y_inner_type": "None",
         "univariate-only": True,
         "fit_is_empty": True,
     }
@@ -408,7 +408,7 @@ class ClaSPTransformer(BaseTransformer):
         self.window_length = int(window_length)
         self.scoring_metric = scoring_metric
         self.exclusion_radius = exclusion_radius
-        super(ClaSPTransformer, self).__init__()
+        super().__init__()
 
     def _transform(self, X, y=None):
         """Compute ClaSP.
@@ -418,8 +418,8 @@ class ClaSPTransformer(BaseTransformer):
 
         Parameters
         ----------
-        X : 2D numpy.ndarray
-           A single pandas series or a 1d numpy array
+        X : numpy.ndarray
+            A univariate time series
         y : ignored argument for interface compatibility
             Additional data, e.g., labels for transformation
 

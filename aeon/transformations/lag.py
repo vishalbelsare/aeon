@@ -1,6 +1,6 @@
 """Lagging transformer."""
 
-__author__ = ["fkiraly"]
+__maintainer__ = []
 
 from warnings import warn
 
@@ -69,7 +69,7 @@ class Lag(BaseTransformer):
     flatten_transform_index : bool, optional (default=True)
         if True, columns of return DataFrame are flat, by "lagname__variablename"
         if False, columns are MultiIndex (lagname, variablename)
-        has no effect if return mtype is one without column names
+        has no effect if return type is one without column names
     keep_column_names : bool, optional (default=False)
         has an effect only if `lags` contains only a single element
         if True, ensures that column names of `transform` output are same as in input,
@@ -109,14 +109,14 @@ class Lag(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
+        # what abstract type is returned: Primitives, Series, Panel
         "instancewise": True,  # is this an instance-wise transform?
         "capability:inverse_transform": False,  # can the transformer inverse transform?
         "univariate-only": False,  # can the transformer handle multivariate X?
-        "X_inner_type": "pd.DataFrame",  # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "None",  # which mtypes do _fit/_predict support for y?
+        "X_inner_type": "pd.DataFrame",
+        "y_inner_type": "None",
         "fit_is_empty": False,  # is fit empty and can be skipped? Yes = True
         "transform-returns-same-time-index": False,
         # does transform return have the same time index as input X
@@ -163,7 +163,7 @@ class Lag(BaseTransformer):
         msg = "freq must be a list of equal length to lags, or a scalar."
         assert len(self._lags) == len(self._freq), msg
 
-        super(Lag, self).__init__()
+        super().__init__()
 
         if index_out == "original":
             self.set_tags(**{"transform-returns-same-time-index": True})
@@ -278,15 +278,6 @@ class Lag(BaseTransformer):
         -------
         pd.DataFrame, inverse transformed version of X
         """
-        # implement here
-        # IMPORTANT: avoid side effects to X, y
-        #
-        # type conventions are exactly those in _transform, reversed
-        #
-        # for example: if transform-output is "Series":
-        #  return should be of same mtype as input, X_inner_type
-        #  if multiple X_inner_type are supported, ensure same input/output
-        #
 
     def _update(self, X, y=None):
         """Update transformer with X and y.
@@ -397,14 +388,12 @@ class ReducerTransform(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
         "instancewise": True,  # is this an instance-wise transform?
         "capability:inverse_transform": False,  # can the transformer inverse transform?
         "univariate-only": False,  # can the transformer handle multivariate X?
-        "X_inner_type": "pd.DataFrame",  # which mtypes do _fit/_predict support for X?
-        "y_inner_type": "pd.DataFrame",  # which mtypes do _fit/_predict support for y?
+        "X_inner_type": "pd.DataFrame",
+        "y_inner_type": "pd.DataFrame",
         "fit_is_empty": False,  # is fit empty and can be skipped? Yes = True
         "transform-returns-same-time-index": False,
         # does transform return have the same time index as input X
@@ -439,7 +428,7 @@ class ReducerTransform(BaseTransformer):
         else:
             self._lags = lags
 
-        super(ReducerTransform, self).__init__()
+        super().__init__()
 
     def _fit(self, X, y=None):
         """Fit transformer to X and y.

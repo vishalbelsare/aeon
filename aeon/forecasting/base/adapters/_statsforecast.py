@@ -1,6 +1,6 @@
 """Implements adapter for StatsForecast forecasters to be used in aeon framework."""
 
-__author__ = ["FedericoGarza"]
+__maintainer__ = []
 __all__ = ["_StatsForecastAdapter"]
 
 
@@ -27,7 +27,7 @@ class _StatsForecastAdapter(BaseForecaster):
 
     def __init__(self):
         self._forecaster = None
-        super(_StatsForecastAdapter, self).__init__()
+        super().__init__()
 
     def _instantiate_model(self):
         raise NotImplementedError("abstract method")

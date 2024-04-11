@@ -1,6 +1,6 @@
 """Implements trend based forecasters."""
 
-__author__ = ["tensorflow-as-tf", "mloning", "aiwalter", "fkiraly"]
+__maintainer__ = []
 __all__ = ["TrendForecaster", "PolynomialTrendForecaster", "STLForecaster"]
 
 import pandas as pd
@@ -67,7 +67,7 @@ class TrendForecaster(BaseForecaster):
     def __init__(self, regressor=None):
         # for default regressor, set fit_intercept=True
         self.regressor = regressor
-        super(TrendForecaster, self).__init__()
+        super().__init__()
 
     def _fit(self, y, X=None, fh=None):
         """Fit to training data.
@@ -205,7 +205,7 @@ class PolynomialTrendForecaster(BaseForecaster):
         self.degree = degree
         self.with_intercept = with_intercept
         self.regressor_ = self.regressor
-        super(PolynomialTrendForecaster, self).__init__()
+        super().__init__()
 
     def _fit(self, y, X=None, fh=None):
         """Fit to training data.
@@ -464,7 +464,7 @@ class STLForecaster(BaseForecaster):
         self.forecaster_trend = forecaster_trend
         self.forecaster_seasonal = forecaster_seasonal
         self.forecaster_resid = forecaster_resid
-        super(STLForecaster, self).__init__()
+        super().__init__()
 
     def _fit(self, y, X=None, fh=None):
         """Fit forecaster to training data.

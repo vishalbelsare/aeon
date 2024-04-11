@@ -1,16 +1,8 @@
 """Implements simple forecasts based on naive assumptions."""
 
+__maintainer__ = []
 __all__ = ["NaiveForecaster", "NaiveVariance"]
-__author__ = [
-    "mloning",
-    "piyush1729",
-    "sri1419",
-    "Flix6x",
-    "aiwalter",
-    "IlyasMoutawwakil",
-    "fkiraly",
-    "bethrice44",
-]
+
 
 import math
 from warnings import warn
@@ -20,10 +12,10 @@ import pandas as pd
 from scipy.stats import norm
 
 from aeon.datatypes._convert import convert, convert_to
-from aeon.datatypes._utilities import get_slice
 from aeon.forecasting.base import ForecastingHorizon
 from aeon.forecasting.base._aeon import _BaseWindowForecaster
 from aeon.forecasting.base._base import DEFAULT_ALPHA, BaseForecaster
+from aeon.utils.index_functions import get_slice
 from aeon.utils.validation import check_window_length
 from aeon.utils.validation.forecasting import check_sp
 
@@ -114,7 +106,7 @@ class NaiveForecaster(_BaseWindowForecaster):
     }
 
     def __init__(self, strategy="last", window_length=None, sp=1):
-        super(NaiveForecaster, self).__init__()
+        super().__init__()
         self.strategy = strategy
         self.sp = sp
         self.window_length = window_length
@@ -329,7 +321,7 @@ class NaiveForecaster(_BaseWindowForecaster):
         X : pd.DataFrame, optional (default=None)
             Exogenous time series
         """
-        y_pred = super(NaiveForecaster, self)._predict(fh=fh, X=X)
+        y_pred = super()._predict(fh=fh, X=X)
 
         # test_predict_time_index_in_sample_full[ForecastingPipeline-0-int-int-True]
         #   causes a pd.DataFrame to appear as y_pred, which upsets the next lines
@@ -486,9 +478,9 @@ class NaiveForecaster(_BaseWindowForecaster):
         # Formulas from:
         # https://otexts.com/fpp3/prediction-intervals.html (Table 5.2)
         partial_se_formulas = {
-            "last": lambda h: np.sqrt(h)
-            if sp == 1
-            else np.sqrt(np.floor((h - 1) / sp) + 1),
+            "last": lambda h: (
+                np.sqrt(h) if sp == 1 else np.sqrt(np.floor((h - 1) / sp) + 1)
+            ),
             "mean": lambda h: np.repeat(np.sqrt(1 + (1 / window_length)), len(h)),
             "drift": lambda h: np.sqrt(h * (1 + (h / (T - 1)))),
         }
@@ -594,7 +586,7 @@ class NaiveVariance(BaseForecaster):
         self.forecaster = forecaster
         self.initial_window = initial_window
         self.verbose = verbose
-        super(NaiveVariance, self).__init__()
+        super().__init__()
 
         tags_to_clone = [
             "requires-fh-in-fit",

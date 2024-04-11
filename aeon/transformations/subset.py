@@ -1,6 +1,6 @@
 """Transformers for index and column subsetting."""
 
-__author__ = ["fkiraly"]
+__maintainer__ = []
 
 import pandas as pd
 from pandas.api.types import is_integer_dtype
@@ -37,9 +37,9 @@ class IndexSubset(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
+        # what abstract type is returned: Primitives, Series, Panel
         "instancewise": True,  # is this an instance-wise transform?
         "X_inner_type": ["pd.DataFrame", "pd.Series"],
         "y_inner_type": ["pd.DataFrame", "pd.Series"],
@@ -52,7 +52,7 @@ class IndexSubset(BaseTransformer):
 
     def __init__(self, index_treatment="keep"):
         self.index_treatment = index_treatment
-        super(IndexSubset, self).__init__()
+        super().__init__()
 
     def _transform(self, X, y=None):
         """Transform X and return a transformed version.
@@ -150,9 +150,9 @@ class ColumnSelect(BaseTransformer):
 
     _tags = {
         "input_data_type": "Series",
-        # what is the scitype of X: Series, or Panel
+        # what is the abstract type of X: Series, or Panel
         "output_data_type": "Series",
-        # what scitype is returned: Primitives, Series, Panel
+        # what abstract type is returned: Primitives, Series, Panel
         "instancewise": True,  # is this an instance-wise transform?
         "X_inner_type": "pd.DataFrame",
         "y_inner_type": "None",
@@ -166,7 +166,7 @@ class ColumnSelect(BaseTransformer):
         self.columns = columns
         self.integer_treatment = integer_treatment
         self.index_treatment = index_treatment
-        super(ColumnSelect, self).__init__()
+        super().__init__()
 
     def _transform(self, X, y=None):
         """Transform X and return a transformed version.

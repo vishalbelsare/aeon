@@ -9,7 +9,7 @@ from sklearn.neighbors import NearestNeighbors
 
 from aeon.transformations.base import BaseTransformer
 
-__author__ = ["KatieBuc"]
+__maintainer__ = []
 __all__ = ["STRAY"]
 
 
@@ -98,7 +98,7 @@ class STRAY(BaseTransformer):
         self.p = p
         self.size_threshold = size_threshold
         self.outlier_tail = outlier_tail
-        super(STRAY, self).__init__()
+        super().__init__()
 
     def _find_threshold(self, outlier_score: npt.ArrayLike, n: int) -> npt.ArrayLike:
         """Find Outlier Threshold.
