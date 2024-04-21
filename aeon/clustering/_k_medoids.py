@@ -3,7 +3,7 @@
 __maintainer__ = []
 
 import warnings
-from typing import Callable, Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 from numpy.random import RandomState
@@ -58,6 +58,8 @@ class TimeSeriesKMedoids(BaseClusterer):
         strings for metrics can be found in the documentation for
         :func:`aeon.distances.get_distance_function`. If a callable is passed it must be
         a function that takes two 2d numpy arrays as input and returns a float.
+        If distance is "precomputed", X is assumed to be a distance matrix and must
+        be square.
     method : str, default='pam'
         Method for computing k-medoids. Any of the following are valid:
         ['alternate', 'pam'].
@@ -151,8 +153,8 @@ class TimeSeriesKMedoids(BaseClusterer):
         max_iter: int = 300,
         tol: float = 1e-6,
         verbose: bool = False,
-        random_state: Union[int, RandomState] = None,
-        distance_params: dict = None,
+        random_state: Optional[Union[int, RandomState]] = None,
+        distance_params: Optional[dict] = None,
     ):
         self.init_algorithm = init_algorithm
         self.distance = distance
@@ -172,6 +174,7 @@ class TimeSeriesKMedoids(BaseClusterer):
         self._random_state = None
         self._init_algorithm = None
         self._distance_cache = None
+
         self._distance_callable = None
         self._fit_method = None
 
@@ -204,9 +207,15 @@ class TimeSeriesKMedoids(BaseClusterer):
 
     def _predict(self, X: np.ndarray, y=None) -> np.ndarray:
         if isinstance(self.distance, str):
-            pairwise_matrix = pairwise_distance(
-                X, self.cluster_centers_, metric=self.distance, **self._distance_params
-            )
+            if self.distance == "precomputed":
+                pairwise_matrix = X
+            else:
+                pairwise_matrix = pairwise_distance(
+                    X,
+                    self.cluster_centers_,
+                    metric=self.distance,
+                    **self._distance_params,
+                )
         else:
             pairwise_matrix = pairwise_distance(
                 X,
@@ -419,6 +428,22 @@ class TimeSeriesKMedoids(BaseClusterer):
         pairwise_matrix = self._compute_pairwise(X, X_indexes, cluster_center_indexes)
         return pairwise_matrix.argmin(axis=1), pairwise_matrix.min(axis=1).sum()
 
+    def _preprocess_collection(self, X):
+        if self.distance == "precomputed":
+            if isinstance(X, np.ndarray):
+                if X.shape[0] != X.shape[1]:
+                    raise ValueError(
+                        "The distance matrix must be square. "
+                        f"Got shape {X.shape} instead."
+                    )
+                return X
+            raise ValueError(
+                "If distance is 'precomputed', X must be a square matrix. "
+                f"Got {type(X)} instead."
+            )
+
+        super()._preprocess_collection(X)
+
     def _check_params(self, X: np.ndarray) -> None:
         self._random_state = check_random_state(self.random_state)
 
@@ -453,8 +478,12 @@ class TimeSeriesKMedoids(BaseClusterer):
                 f"n_clusters ({self.n_clusters}) cannot be larger than "
                 f"n_cases ({X.shape[0]})"
             )
-        self._distance_callable = get_distance_function(metric=self.distance)
-        self._distance_cache = np.full((X.shape[0], X.shape[0]), np.inf)
+
+        if self.distance == "precomputed":
+            self._distance_cache = X
+        else:
+            self._distance_callable = get_distance_function(metric=self.distance)
+            self._distance_cache = np.full((X.shape[0], X.shape[0]), np.inf)
 
         if self.method == "alternate":
             self._fit_method = self._alternate_fit
