@@ -59,7 +59,7 @@ class TimeSeriesKMedoids(BaseClusterer):
         :func:`aeon.distances.get_distance_function`. If a callable is passed it must be
         a function that takes two 2d numpy arrays as input and returns a float.
         If distance is "precomputed", X is assumed to be a distance matrix and must
-        be square.
+        be square. Additionally predict cannot be called.
     method : str, default='pam'
         Method for computing k-medoids. Any of the following are valid:
         ['alternate', 'pam'].
@@ -96,6 +96,8 @@ class TimeSeriesKMedoids(BaseClusterer):
         the sample weights if provided.
     n_iter_ : int
         Number of iterations run.
+    center_indexes_ : np.ndarray (1d array of shape (n_clusters,))
+        Indexes of the time series that are the cluster centers from the training data.
 
     References
     ----------
@@ -170,6 +172,7 @@ class TimeSeriesKMedoids(BaseClusterer):
         self.labels_ = None
         self.inertia_ = None
         self.n_iter_ = 0
+        self.center_indexes_ = None
 
         self._random_state = None
         self._init_algorithm = None
@@ -188,19 +191,23 @@ class TimeSeriesKMedoids(BaseClusterer):
         best_inertia = np.inf
         best_labels = None
         best_iters = self.max_iter
+        best_center_indexes = None
 
         for _ in range(self.n_init):
-            labels, centers, inertia, n_iters = self._fit_method(X)
+            labels, centers, inertia, n_iters, center_indexes = self._fit_method(X)
             if inertia < best_inertia:
                 best_centers = centers
                 best_labels = labels
                 best_inertia = inertia
                 best_iters = n_iters
+                best_center_indexes = center_indexes
 
         self.labels_ = best_labels
         self.inertia_ = best_inertia
-        self.cluster_centers_ = best_centers
+        if self.distance != "precomputed":
+            self.cluster_centers_ = best_centers
         self.n_iter_ = best_iters
+        self.center_indexes_ = best_center_indexes
 
     def _score(self, X, y=None):
         return -self.inertia_
@@ -208,7 +215,9 @@ class TimeSeriesKMedoids(BaseClusterer):
     def _predict(self, X: np.ndarray, y=None) -> np.ndarray:
         if isinstance(self.distance, str):
             if self.distance == "precomputed":
-                pairwise_matrix = X
+                raise ValueError(
+                    "Predict cannot be called when distance is precomputed."
+                )
             else:
                 pairwise_matrix = pairwise_distance(
                     X,
@@ -224,6 +233,27 @@ class TimeSeriesKMedoids(BaseClusterer):
                 **self._distance_params,
             )
         return pairwise_matrix.argmin(axis=1)
+
+    def fit_predict(self, X, y=None) -> np.ndarray:
+        """Compute cluster centers and predict cluster index for each time series.
+
+        Convenience method; equivalent of calling fit(X) followed by predict(X)
+
+        Parameters
+        ----------
+        X : np.ndarray (2d or 3d array of shape (n_cases, n_timepoints) or shape
+            (n_cases, n_channels, n_timepoints)).
+            Time series instances to train clusterer and then have indexes each belong
+            to return.
+        y: ignored, exists for API consistency reasons.
+
+        Returns
+        -------
+        np.ndarray (1d array of shape (n_cases,))
+            Index of the cluster each time series in X belongs to.
+        """
+        self.fit(X)
+        return self.labels_
 
     def _compute_new_cluster_centers(
         self, X: np.ndarray, assignment_indexes: np.ndarray
@@ -329,7 +359,7 @@ class TimeSeriesKMedoids(BaseClusterer):
         labels, inertia = self._assign_clusters(X, medoids_idxs)
         centers = X[medoids_idxs]
 
-        return labels, centers, inertia, i + 1
+        return labels, centers, inertia, i + 1, medoids_idxs
 
     def _compute_optimal_swaps(
         self,
@@ -390,7 +420,7 @@ class TimeSeriesKMedoids(BaseClusterer):
         else:
             return None
 
-    def _alternate_fit(self, X) -> Tuple[np.ndarray, np.ndarray, float, int]:
+    def _alternate_fit(self, X) -> Tuple[np.ndarray, np.ndarray, float, int, np.ndarray]:
         cluster_center_indexes = self._init_algorithm
         if isinstance(self._init_algorithm, Callable):
             cluster_center_indexes = self._init_algorithm(X)
@@ -419,7 +449,7 @@ class TimeSeriesKMedoids(BaseClusterer):
         labels, inertia = self._assign_clusters(X, cluster_center_indexes)
         centers = X[cluster_center_indexes]
 
-        return labels, centers, inertia, i + 1
+        return labels, centers, inertia, i + 1, cluster_center_indexes
 
     def _assign_clusters(
         self, X: np.ndarray, cluster_center_indexes: np.ndarray
@@ -442,7 +472,7 @@ class TimeSeriesKMedoids(BaseClusterer):
                 f"Got {type(X)} instead."
             )
 
-        super()._preprocess_collection(X)
+        return super()._preprocess_collection(X)
 
     def _check_params(self, X: np.ndarray) -> None:
         self._random_state = check_random_state(self.random_state)

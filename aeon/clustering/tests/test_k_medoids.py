@@ -3,6 +3,7 @@
 import numpy as np
 from sklearn import metrics
 from sklearn.utils import check_random_state
+import pytest
 
 from aeon.clustering._k_medoids import TimeSeriesKMedoids
 from aeon.distances import euclidean_distance, euclidean_pairwise_distance
@@ -20,8 +21,8 @@ def test_kmedoids_uni():
     y_train = y_train[:num_points]
     X_test = X_test[:num_points]
     y_test = y_test[:num_points]
-    # _alternate_uni_medoids(X_train, y_train, X_test, y_test)
-    # _pam_uni_medoids(X_train, y_train, X_test, y_test)
+    _alternate_uni_medoids(X_train, y_train, X_test, y_test)
+    _pam_uni_medoids(X_train, y_train, X_test, y_test)
     # precomputed
     _alternate_uni_medoids(X_train, y_train, X_test, y_test, use_precomputed=True)
     _pam_uni_medoids(X_train, y_train, X_test, y_test, use_precomputed=True)
@@ -40,133 +41,203 @@ def test_kmedoids_multi():
     y_test = y_test[:num_points]
     _alternate_multi_medoids(X_train, y_train, X_test, y_test)
     _pam_multi_medoids(X_train, y_train, X_test, y_test)
+    # precomputed
+    _alternate_multi_medoids(X_train, y_train, X_test, y_test, use_precomputed=True)
+    _pam_multi_medoids(X_train, y_train, X_test, y_test, use_precomputed=True)
 
 
 def _pam_uni_medoids(X_train, y_train, X_test, y_test, use_precomputed=False):
-    distance = "euclidean"
     if use_precomputed:
-        distance = "precomputed"
         X_train = euclidean_pairwise_distance(X_train)
-        X_test = euclidean_pairwise_distance(X_test)
-
-    kmedoids = TimeSeriesKMedoids(
-        random_state=1,
-        n_init=2,
-        max_iter=5,
-        init_algorithm="first",
-        distance=distance,
-        method="pam",
-    )
-    train_medoids_result = kmedoids.fit_predict(X_train)
-    train_score = metrics.rand_score(y_train, train_medoids_result)
-    test_medoids_result = kmedoids.predict(X_test)
-    test_score = metrics.rand_score(y_test, test_medoids_result)
-    proba = kmedoids.predict_proba(X_test)
-    assert np.array_equal(test_medoids_result, [3, 4, 6, 3, 0, 7, 0, 6, 6, 3])
-    assert np.array_equal(train_medoids_result, [5, 1, 2, 3, 4, 5, 6, 7, 0, 3])
-    assert test_score == 0.6222222222222222
-    assert train_score == 0.6
-    assert np.isclose(kmedoids.inertia_, 3.04125095258111)
-    assert kmedoids.n_iter_ == 2
-    assert np.array_equal(kmedoids.labels_, [5, 1, 2, 3, 4, 5, 6, 7, 0, 3])
-    assert isinstance(kmedoids.cluster_centers_, np.ndarray)
-    for val in proba:
-        assert np.count_nonzero(val == 1.0) == 1
+        kmedoids = TimeSeriesKMedoids(
+            random_state=1,
+            n_init=2,
+            max_iter=5,
+            init_algorithm="first",
+            distance="precomputed",
+            method="pam",
+        )
+        train_medoids_result = kmedoids.fit_predict(X_train)
+        train_score = metrics.rand_score(y_train, train_medoids_result)
+        with pytest.raises(ValueError):
+            kmedoids.predict(X_test)
+        assert np.array_equal(train_medoids_result, [5, 1, 2, 3, 4, 5, 6, 7, 0, 3])
+        assert train_score == 0.6
+        assert np.isclose(kmedoids.inertia_, 3.04125095258111)
+        assert kmedoids.n_iter_ == 2
+        assert np.array_equal(kmedoids.labels_, [5, 1, 2, 3, 4, 5, 6, 7, 0, 3])
+        assert kmedoids.cluster_centers_ is None
+        assert isinstance(kmedoids.center_indexes_, np.ndarray)
+    else:
+        kmedoids = TimeSeriesKMedoids(
+            random_state=1,
+            n_init=2,
+            max_iter=5,
+            init_algorithm="first",
+            distance="euclidean",
+            method="pam",
+        )
+        train_medoids_result = kmedoids.fit_predict(X_train)
+        train_score = metrics.rand_score(y_train, train_medoids_result)
+        test_medoids_result = kmedoids.predict(X_test)
+        test_score = metrics.rand_score(y_test, test_medoids_result)
+        proba = kmedoids.predict_proba(X_test)
+        assert np.array_equal(test_medoids_result, [3, 4, 6, 3, 0, 7, 0, 6, 6, 3])
+        assert np.array_equal(train_medoids_result, [5, 1, 2, 3, 4, 5, 6, 7, 0, 3])
+        assert test_score == 0.6222222222222222
+        assert train_score == 0.6
+        assert np.isclose(kmedoids.inertia_, 3.04125095258111)
+        assert kmedoids.n_iter_ == 2
+        assert np.array_equal(kmedoids.labels_, [5, 1, 2, 3, 4, 5, 6, 7, 0, 3])
+        assert isinstance(kmedoids.cluster_centers_, np.ndarray)
+        for val in proba:
+            assert np.count_nonzero(val == 1.0) == 1
 
 
 def _alternate_uni_medoids(X_train, y_train, X_test, y_test, use_precomputed=False):
-    distance = "euclidean"
     if use_precomputed:
-        distance = "precomputed"
         X_train = euclidean_pairwise_distance(X_train)
-        X_test = euclidean_pairwise_distance(X_test)
-
-    kmedoids = TimeSeriesKMedoids(
-        random_state=1,
-        n_init=2,
-        max_iter=5,
-        method="alternate",
-        init_algorithm="first",
-        distance=distance,
-    )
-    train_medoids_result = kmedoids.fit_predict(X_train)
-    train_score = metrics.rand_score(y_train, train_medoids_result)
-    test_medoids_result = kmedoids.predict(X_test)
-    test_score = metrics.rand_score(y_test, test_medoids_result)
-    proba = kmedoids.predict_proba(X_test)
-    assert np.array_equal(test_medoids_result, [3, 4, 6, 3, 7, 7, 6, 6, 6, 3])
-    assert np.array_equal(train_medoids_result, [0, 1, 2, 3, 4, 5, 6, 7, 1, 3])
-    assert test_score == 0.6888888888888889
-    assert train_score == 0.6
-    assert np.isclose(kmedoids.inertia_, 6.571247130721869)
-    assert kmedoids.n_iter_ == 2
-    assert np.array_equal(kmedoids.labels_, [0, 1, 2, 3, 4, 5, 6, 7, 1, 3])
-    assert isinstance(kmedoids.cluster_centers_, np.ndarray)
-    for val in proba:
-        assert np.count_nonzero(val == 1.0) == 1
+        kmedoids = TimeSeriesKMedoids(
+            random_state=1,
+            n_init=2,
+            max_iter=5,
+            method="alternate",
+            init_algorithm="first",
+            distance="precomputed",
+        )
+        train_medoids_result = kmedoids.fit_predict(X_train)
+        train_score = metrics.rand_score(y_train, train_medoids_result)
+        with pytest.raises(ValueError):
+            kmedoids.predict(X_test)
+        assert np.array_equal(train_medoids_result, [0, 1, 2, 3, 4, 5, 6, 7, 1, 3])
+        assert train_score == 0.6
+        assert np.isclose(kmedoids.inertia_, 6.571247130721869)
+        assert kmedoids.n_iter_ == 2
+        assert np.array_equal(kmedoids.labels_, [0, 1, 2, 3, 4, 5, 6, 7, 1, 3])
+        assert kmedoids.cluster_centers_ is None
+        assert isinstance(kmedoids.center_indexes_, np.ndarray)
+    else:
+        kmedoids = TimeSeriesKMedoids(
+            random_state=1,
+            n_init=2,
+            max_iter=5,
+            method="alternate",
+            init_algorithm="first",
+            distance="euclidean",
+        )
+        train_medoids_result = kmedoids.fit_predict(X_train)
+        train_score = metrics.rand_score(y_train, train_medoids_result)
+        test_medoids_result = kmedoids.predict(X_test)
+        test_score = metrics.rand_score(y_test, test_medoids_result)
+        proba = kmedoids.predict_proba(X_test)
+        assert np.array_equal(test_medoids_result, [3, 4, 6, 3, 7, 7, 6, 6, 6, 3])
+        assert np.array_equal(train_medoids_result, [0, 1, 2, 3, 4, 5, 6, 7, 1, 3])
+        assert test_score == 0.6888888888888889
+        assert train_score == 0.6
+        assert np.isclose(kmedoids.inertia_, 6.571247130721869)
+        assert kmedoids.n_iter_ == 2
+        assert np.array_equal(kmedoids.labels_, [0, 1, 2, 3, 4, 5, 6, 7, 1, 3])
+        assert isinstance(kmedoids.cluster_centers_, np.ndarray)
+        for val in proba:
+            assert np.count_nonzero(val == 1.0) == 1
 
 
 def _pam_multi_medoids(X_train, y_train, X_test, y_test, use_precomputed=False):
-    distance = "euclidean"
     if use_precomputed:
-        distance = "precomputed"
         X_train = euclidean_pairwise_distance(X_train)
-        X_test = euclidean_pairwise_distance(X_test)
 
-    kmedoids = TimeSeriesKMedoids(
-        random_state=1,
-        n_init=2,
-        max_iter=5,
-        init_algorithm="first",
-        distance=distance,
-        method="pam",
-    )
-    train_medoids_result = kmedoids.fit_predict(X_train)
-    train_score = metrics.rand_score(y_train, train_medoids_result)
-    test_medoids_result = kmedoids.predict(X_test)
-    test_score = metrics.rand_score(y_test, test_medoids_result)
-    proba = kmedoids.predict_proba(X_test)
-    assert np.array_equal(test_medoids_result, [7, 7, 3, 7, 7, 7, 0, 7, 5, 7])
-    assert np.array_equal(train_medoids_result, [7, 1, 2, 3, 4, 7, 6, 7, 5, 0])
-    assert test_score == 0.6666666666666666
-    assert train_score == 0.6
-    assert np.isclose(kmedoids.inertia_, 15.232292770407273)
-    assert kmedoids.n_iter_ == 3
-    assert np.array_equal(kmedoids.labels_, [7, 1, 2, 3, 4, 7, 6, 7, 5, 0])
-    assert isinstance(kmedoids.cluster_centers_, np.ndarray)
-    for val in proba:
-        assert np.count_nonzero(val == 1.0) == 1
+        kmedoids = TimeSeriesKMedoids(
+            random_state=1,
+            n_init=2,
+            max_iter=5,
+            init_algorithm="first",
+            distance="precomputed",
+            method="pam",
+        )
+        train_medoids_result = kmedoids.fit_predict(X_train)
+        train_score = metrics.rand_score(y_train, train_medoids_result)
+        with pytest.raises(ValueError):
+            kmedoids.predict(X_test)
+        assert np.array_equal(train_medoids_result, [7, 1, 2, 3, 4, 7, 6, 7, 5, 0])
+        assert train_score == 0.6
+        assert np.isclose(kmedoids.inertia_, 15.232292770407273)
+        assert kmedoids.n_iter_ == 3
+        assert np.array_equal(kmedoids.labels_, [7, 1, 2, 3, 4, 7, 6, 7, 5, 0])
+        assert kmedoids.cluster_centers_ is None
+        assert isinstance(kmedoids.center_indexes_, np.ndarray)
+    else:
+        kmedoids = TimeSeriesKMedoids(
+            random_state=1,
+            n_init=2,
+            max_iter=5,
+            init_algorithm="first",
+            distance="euclidean",
+            method="pam",
+        )
+        train_medoids_result = kmedoids.fit_predict(X_train)
+        train_score = metrics.rand_score(y_train, train_medoids_result)
+        test_medoids_result = kmedoids.predict(X_test)
+        test_score = metrics.rand_score(y_test, test_medoids_result)
+        proba = kmedoids.predict_proba(X_test)
+        assert np.array_equal(test_medoids_result, [7, 7, 3, 7, 7, 7, 0, 7, 5, 7])
+        assert np.array_equal(train_medoids_result, [7, 1, 2, 3, 4, 7, 6, 7, 5, 0])
+        assert test_score == 0.6666666666666666
+        assert train_score == 0.6
+        assert np.isclose(kmedoids.inertia_, 15.232292770407273)
+        assert kmedoids.n_iter_ == 3
+        assert np.array_equal(kmedoids.labels_, [7, 1, 2, 3, 4, 7, 6, 7, 5, 0])
+        assert isinstance(kmedoids.cluster_centers_, np.ndarray)
+        for val in proba:
+            assert np.count_nonzero(val == 1.0) == 1
 
 
 def _alternate_multi_medoids(X_train, y_train, X_test, y_test, use_precomputed=False):
-    distance = "euclidean"
     if use_precomputed:
-        distance = "precomputed"
         X_train = euclidean_pairwise_distance(X_train)
-        X_test = euclidean_pairwise_distance(X_test)
-    kmedoids = TimeSeriesKMedoids(
-        random_state=1,
-        n_init=2,
-        max_iter=5,
-        init_algorithm="first",
-        method="alternate",
-        distance=distance,
-    )
-    train_medoids_result = kmedoids.fit_predict(X_train)
-    train_score = metrics.rand_score(y_train, train_medoids_result)
-    test_medoids_result = kmedoids.predict(X_test)
-    test_score = metrics.rand_score(y_test, test_medoids_result)
-    proba = kmedoids.predict_proba(X_test)
-    assert np.array_equal(test_medoids_result, [0, 7, 3, 5, 7, 0, 5, 5, 7, 7])
-    assert np.array_equal(train_medoids_result, [0, 1, 2, 3, 4, 5, 6, 7, 4, 7])
-    assert test_score == 0.5111111111111111
-    assert train_score == 0.5777777777777777
-    assert np.isclose(kmedoids.inertia_, 23.492613611209528)
-    assert kmedoids.n_iter_ == 2
-    assert np.array_equal(kmedoids.labels_, [0, 1, 2, 3, 4, 5, 6, 7, 4, 7])
-    assert isinstance(kmedoids.cluster_centers_, np.ndarray)
-    for val in proba:
-        assert np.count_nonzero(val == 1.0) == 1
+
+        kmedoids = TimeSeriesKMedoids(
+            random_state=1,
+            n_init=2,
+            max_iter=5,
+            init_algorithm="first",
+            method="alternate",
+            distance="precomputed",
+        )
+        train_medoids_result = kmedoids.fit_predict(X_train)
+        train_score = metrics.rand_score(y_train, train_medoids_result)
+        with pytest.raises(ValueError):
+            kmedoids.predict(X_test)
+        assert np.array_equal(train_medoids_result, [0, 1, 2, 3, 4, 5, 6, 7, 4, 7])
+        assert train_score == 0.5777777777777777
+        assert np.isclose(kmedoids.inertia_, 23.492613611209528)
+        assert kmedoids.n_iter_ == 2
+        assert np.array_equal(kmedoids.labels_, [0, 1, 2, 3, 4, 5, 6, 7, 4, 7])
+        assert kmedoids.cluster_centers_ is None
+        assert isinstance(kmedoids.center_indexes_, np.ndarray)
+    else:
+        kmedoids = TimeSeriesKMedoids(
+            random_state=1,
+            n_init=2,
+            max_iter=5,
+            init_algorithm="first",
+            method="alternate",
+            distance="euclidean",
+        )
+        train_medoids_result = kmedoids.fit_predict(X_train)
+        train_score = metrics.rand_score(y_train, train_medoids_result)
+        test_medoids_result = kmedoids.predict(X_test)
+        test_score = metrics.rand_score(y_test, test_medoids_result)
+        proba = kmedoids.predict_proba(X_test)
+        assert np.array_equal(test_medoids_result, [0, 7, 3, 5, 7, 0, 5, 5, 7, 7])
+        assert np.array_equal(train_medoids_result, [0, 1, 2, 3, 4, 5, 6, 7, 4, 7])
+        assert test_score == 0.5111111111111111
+        assert train_score == 0.5777777777777777
+        assert np.isclose(kmedoids.inertia_, 23.492613611209528)
+        assert kmedoids.n_iter_ == 2
+        assert np.array_equal(kmedoids.labels_, [0, 1, 2, 3, 4, 5, 6, 7, 4, 7])
+        assert isinstance(kmedoids.cluster_centers_, np.ndarray)
+        for val in proba:
+            assert np.count_nonzero(val == 1.0) == 1
 
 
 def check_value_in_every_cluster(num_clusters, initial_medoids):
