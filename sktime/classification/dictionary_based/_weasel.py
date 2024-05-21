@@ -46,7 +46,6 @@ class WEASEL(BaseClassifier):
     discriminated by different prefixes.
     *fit* involves training a logistic regression classifier on the single
     bag-of-patterns.
-
     predict uses the logistic regression classifier
 
     Parameters
