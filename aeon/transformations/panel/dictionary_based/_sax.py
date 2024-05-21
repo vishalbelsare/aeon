@@ -27,8 +27,7 @@ class SAX(BaseTransformer):
     "Experiencing SAX: a novel symbolic representation of time series"
     Data Mining and Knowledge Discovery, 15(2):107-144
     Overview: for each series:
-        run a sliding window across the series
-        for each window
+        run a sliding window across the series for each window
             shorten the series with PAA (Piecewise Approximate Aggregation)
             discretise the shortened series into fixed bins
             form a word from these discrete values
