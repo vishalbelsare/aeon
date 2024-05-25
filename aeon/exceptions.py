@@ -1,12 +1,18 @@
-#!/usr/bin/env python3 -u
-# -*- coding: utf-8 -*-
-# copyright: aeon developers, BSD-3-Clause License (see LICENSE file)
 """Custom exceptions and warnings."""
 
-__author__ = "mloning"
 __all__ = ["NotEvaluatedError", "NotFittedError", "FitFailedWarning"]
 
+from deprecated.sphinx import deprecated
 
+# todo delete file when deprecated
+
+
+# TODO: remove v0.10.0
+@deprecated(
+    version="0.9.0",
+    reason="NotEvaluatedError will be removed in v0.10.0.",
+    category=FutureWarning,
+)
 class NotEvaluatedError(ValueError, AttributeError):
     """NotEvaluatedError.
 
@@ -14,6 +20,13 @@ class NotEvaluatedError(ValueError, AttributeError):
     """
 
 
+# TODO: remove v0.10.0
+@deprecated(
+    version="0.9.0",
+    reason="NotFittedError will be removed in v0.10.0. Use the sklearn "
+    "version of the warning.",
+    category=FutureWarning,
+)
 class NotFittedError(ValueError, AttributeError):
     """Exception class to raise if estimator is used before fitting.
 
@@ -26,6 +39,13 @@ class NotFittedError(ValueError, AttributeError):
     """
 
 
+# TODO: remove v0.10.0
+@deprecated(
+    version="0.9.0",
+    reason="FitFailedWarning will be removed in v0.10.0. Use the sklearn "
+    "version of the warning.",
+    category=FutureWarning,
+)
 class FitFailedWarning(RuntimeWarning):
     """Warning class used if there is an error while fitting the estimator.
 

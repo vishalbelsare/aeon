@@ -1,18 +1,19 @@
-# -*- coding: utf-8 -*-
 """HOG1D transform."""
+
 import math
 import numbers
 
 import numpy as np
 
-from aeon.transformations.base import BaseTransformer
+from aeon.transformations._split import SplitsTimeSeries
+from aeon.transformations.collection import BaseCollectionTransformer
 
 
-class HOG1DTransformer(BaseTransformer):
+class HOG1DTransformer(BaseCollectionTransformer, SplitsTimeSeries):
     """HOG1D transform.
 
-    This transformer calculates the HOG1D transform [1] of a collection of time seriess.
-    HOG1D splits each time series num_intervals times, and finds a histogram of
+    This transformer calculates the HOG1D transform [1] of a collection of time series.
+    HOG1D splits each time series n_intervals times, and finds a histogram of
     gradients within each interval.
 
     Parameters
@@ -33,41 +34,36 @@ class HOG1DTransformer(BaseTransformer):
     """
 
     _tags = {
-        "scitype:transform-output": "Series",
-        "scitype:instancewise": True,
-        "X_inner_mtype": "numpy3D",
-        "y_inner_mtype": "None",
         "fit_is_empty": True,
-        "univariate-only": True,
     }
 
     def __init__(self, n_intervals=2, n_bins=8, scaling_factor=0.1):
         self.n_intervals = n_intervals
         self.n_bins = n_bins
         self.scaling_factor = scaling_factor
-        super(HOG1DTransformer, self).__init__(_output_convert=False)
+        super().__init__()
 
     def _transform(self, X, y=None):
         """Transform X and return a transformed version.
 
         Parameters
         ----------
-        X : 3D np.ndarray of shape = [n_instances, 1, series_length]
+        X : 3D np.ndarray of shape = [n_cases, 1, n_timepoints]
             collection of time series to transform
         y : ignored argument for interface compatibility
 
         Returns
         -------
-        X : 3D np.ndarray of shape = [n_instances, 1, feature_length]
+        X : 3D np.ndarray of shape = [n_cases, 1, feature_length]
             collection of time series to transform
 
         """
         # Get information about the dataframe
-        n_cases, n_channels, series_length = X.shape
+        n_cases, n_channels, n_timepoints = X.shape
         if n_channels > 1:
             raise ValueError("HOG1D does not support multivariate time series.")
         # Check the parameters are appropriate
-        self._check_parameters(series_length)
+        self._check_parameters(n_timepoints)
         transX = []
         for i in range(n_cases):
             # Get the HOG1Ds of each time series
@@ -83,7 +79,7 @@ class HOG1DTransformer(BaseTransformer):
 
         Parameters
         ----------
-        X : a numpy array of shape = [time_series_length]
+        X : a numpy array of shape = [time_n_timepoints]
 
         Returns
         -------
@@ -93,7 +89,7 @@ class HOG1DTransformer(BaseTransformer):
         """
         # Firstly, split the time series into approx equal
         # length intervals
-        splitTimeSeries = self._split_time_series(X)
+        splitTimeSeries = self._split(X)
         HOG1Ds = []
 
         for x in range(len(splitTimeSeries)):
@@ -138,29 +134,7 @@ class HOG1DTransformer(BaseTransformer):
 
         return histogram
 
-    def _split_time_series(self, X):
-        """Split a time series into approximately equal intervals.
-
-        Adopted from = https://stackoverflow.com/questions/2130016/splitting
-                       -a-list-into-n-parts-of-approximately-equal-length
-
-        Parameters
-        ----------
-        X : a numpy array corresponding to the time series being split
-            into approx equal length intervals of shape
-            [num_intervals,interval_length].
-        """
-        avg = len(X) / float(self.n_intervals)
-        output = []
-        beginning = 0.0
-
-        while beginning < len(X):
-            output.append(X[int(beginning) : int(beginning + avg)])
-            beginning += avg
-
-        return output
-
-    def _check_parameters(self, series_length):
+    def _check_parameters(self, n_timepoints):
         """Check the values of parameters inserted into HOG1D.
 
         Throws
@@ -170,7 +144,7 @@ class HOG1DTransformer(BaseTransformer):
         if isinstance(self.n_intervals, int):
             if self.n_intervals <= 0:
                 raise ValueError("num_intervals must have the value of at least 1")
-            if self.n_intervals > series_length:
+            if self.n_intervals > n_timepoints:
                 raise ValueError("num_intervals cannot be higher than serie_length")
         else:
             raise TypeError(

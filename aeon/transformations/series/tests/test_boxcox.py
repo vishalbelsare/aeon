@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 """Tests for BoxCoxTransformer."""
-# copyright: aeon developers, BSD-3-Clause License (see LICENSE file)
 
-__author__ = ["mloning"]
+__maintainer__ = []
 __all__ = []
 
 import numpy as np
@@ -10,7 +8,7 @@ import pytest
 from scipy.stats import boxcox
 
 from aeon.datasets import load_airline
-from aeon.transformations.series.boxcox import BoxCoxTransformer
+from aeon.transformations.series._boxcox import BoxCoxTransformer
 
 
 def test_boxcox_against_scipy():

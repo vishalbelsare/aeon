@@ -1,6 +1,3 @@
-#!/usr/bin/env python3 -u
-# -*- coding: utf-8 -*-
-# copyright: aeon developers, BSD-3-Clause License (see LICENSE file)
 """Tests for Bagging Forecasters."""
 
 import pandas as pd
@@ -11,7 +8,7 @@ from aeon.forecasting.compose import BaggingForecaster
 from aeon.forecasting.compose._bagging import _calculate_data_quantiles
 from aeon.forecasting.naive import NaiveForecaster
 from aeon.transformations.bootstrap import STLBootstrapTransformer
-from aeon.transformations.series.boxcox import LogTransformer
+from aeon.transformations.boxcox import LogTransformer
 from aeon.utils.validation._dependencies import _check_soft_dependencies
 
 y = load_airline()
@@ -19,7 +16,7 @@ y = load_airline()
 
 @pytest.mark.skipif(
     not _check_soft_dependencies("statsmodels", severity="none"),
-    reason="skip test if required soft dependency for hmmlearn not available",
+    reason="skip test if required soft dependency for BaggingForecaster not available",
 )
 @pytest.mark.parametrize("transformer", [LogTransformer, NaiveForecaster])
 def test_bagging_forecaster_transformer_type_error(transformer):
@@ -38,7 +35,7 @@ def test_bagging_forecaster_transformer_type_error(transformer):
 
 @pytest.mark.skipif(
     not _check_soft_dependencies("statsmodels", severity="none"),
-    reason="skip test if required soft dependency for hmmlearn not available",
+    reason="skip test if required soft dependency not available",
 )
 @pytest.mark.parametrize("forecaster", [LogTransformer])
 def test_bagging_forecaster_forecaster_type_error(forecaster):

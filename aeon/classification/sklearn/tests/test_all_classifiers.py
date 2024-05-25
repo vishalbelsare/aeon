@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 """Unit tests for sklearn classifiers."""
 
-__author__ = ["MatthewMiddlehurst"]
+__maintainer__ = []
 
 from sklearn.utils.estimator_checks import parametrize_with_checks
 

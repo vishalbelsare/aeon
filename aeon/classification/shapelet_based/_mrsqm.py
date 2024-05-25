@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 """Multiple Representations Sequence Miner (MrSQM) Classifier."""
 
-__author__ = ["MatthewMiddlehurst"]
+__maintainer__ = []
 __all__ = ["MrSQMClassifier"]
 
 import numpy as np
@@ -41,8 +40,8 @@ class MrSQMClassifier(BaseClassifier):
         serialised (no pickling).
     custom_config : dict, default=None
         Customized parameters for the symbolic transformation.
-    random_state : int or None, default=None
-        Random seed for classifier.
+    random_state : int, default=None
+        If `int`, random_state is the seed used by the random number generator;
     sfa_norm : bool, default=True
         Time series normalisation (standardisation).
 
@@ -64,8 +63,8 @@ class MrSQMClassifier(BaseClassifier):
     Examples
     --------
     >>> from aeon.classification.shapelet_based import MrSQMClassifier
-    >>> from aeon.utils._testing.collection import make_3d_test_data
-    >>> X, y = make_3d_test_data(random_state=0)
+    >>> from aeon.testing.utils.data_gen import make_example_3d_numpy
+    >>> X, y = make_example_3d_numpy(random_state=0)
     >>> clf = MrSQMClassifier(random_state=0) # doctest: +SKIP
     >>> clf.fit(X, y) # doctest: +SKIP
     MrSQMClassifier(...)
@@ -92,10 +91,10 @@ class MrSQMClassifier(BaseClassifier):
         self.custom_config = custom_config
         self.random_state = random_state
 
-        super(MrSQMClassifier, self).__init__()
+        super().__init__()
 
     _tags = {
-        "X_inner_mtype": "nested_univ",  # we don't like this, but it's the only input!
+        "X_inner_type": "nested_univ",  # we don't like this, but it's the only input!
         "algorithm_type": "shapelet",
         "cant-pickle": True,
         "python_dependencies": "mrsqm",

@@ -1,16 +1,13 @@
-# -*- coding: utf-8 -*-
 """Vector Autoregressive Moving Average with eXogenous regressors model (VARMAX)."""
+
 __all__ = ["VARMAX"]
-__author__ = ["KatieBuc"]
+__maintainer__ = []
 
 import warnings
 
 import pandas as pd
 
 from aeon.forecasting.base.adapters import _StatsModelsAdapter
-from aeon.utils.validation._dependencies import _check_soft_dependencies
-
-_check_soft_dependencies("pandas<2.0.0", severity="warning")
 
 
 class VARMAX(_StatsModelsAdapter):
@@ -210,11 +207,11 @@ class VARMAX(_StatsModelsAdapter):
     """
 
     _tags = {
-        "scitype:y": "multivariate",
+        "y_input_type": "multivariate",
         "ignores-exogeneous-X": False,
         "capability:missing_values": False,
-        "y_inner_mtype": "pd.DataFrame",
-        "X_inner_mtype": "pd.DataFrame",
+        "y_inner_type": "pd.DataFrame",
+        "X_inner_type": "pd.DataFrame",
         "requires-fh-in-fit": False,
         "X-y-must-have-same-index": True,
         "enforce_index_type": None,
@@ -281,7 +278,7 @@ class VARMAX(_StatsModelsAdapter):
         self.signal_only = signal_only
         self.suppress_warnings = suppress_warnings
 
-        super(VARMAX, self).__init__()
+        super().__init__()
 
     def _fit_forecaster(self, y, X=None):
         """Fit forecaster to training data.
@@ -293,7 +290,7 @@ class VARMAX(_StatsModelsAdapter):
         ----------
         y : array_like
             The observed time-series process :math:`y`, shaped n_obs x k_endog.
-        X : array_like, optional (default=None)
+        X : array_like, default=None
             Array of exogenous regressors, shaped n_obs x k.
 
         Returns
@@ -350,7 +347,7 @@ class VARMAX(_StatsModelsAdapter):
             The forecasters horizon with the steps ahead to to predict.
             Default is one-step ahead forecast,
             i.e. np.array([1])
-        X : pd.DataFrame, optional (default=None)
+        X : pd.DataFrame, default=None
             Exogenous variables.
 
         Returns
@@ -376,7 +373,7 @@ class VARMAX(_StatsModelsAdapter):
         # but only when out-of-sample forecasting, i.e. when forecasting horizon is
         # greater than zero
         if pd.__version__ < "2.0.0":
-            if (type(self._y.index) == pd.core.indexes.numeric.Int64Index) & (
+            if (type(self._y.index) is pd.core.indexes.numeric.Int64Index) & (
                 any(fh.to_relative(self.cutoff) > 0)
             ):
                 y_pred.index = y_pred.index + self._y.index[0]

@@ -1,10 +1,16 @@
-# -*- coding: utf-8 -*-
-__author__ = ["chrisholder", "TonyBagnall"]
+__maintainer__ = []
 
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, TypedDict, Union
 
 import numpy as np
+from typing_extensions import Unpack
 
+from aeon.distances._adtw import (
+    adtw_alignment_path,
+    adtw_cost_matrix,
+    adtw_distance,
+    adtw_pairwise_distance,
+)
 from aeon.distances._ddtw import (
     ddtw_alignment_path,
     ddtw_cost_matrix,
@@ -36,11 +42,21 @@ from aeon.distances._lcss import (
     lcss_distance,
     lcss_pairwise_distance,
 )
+from aeon.distances._manhattan import manhattan_distance, manhattan_pairwise_distance
+from aeon.distances._minkowski import minkowski_distance, minkowski_pairwise_distance
+from aeon.distances._mpdist import mpdist
 from aeon.distances._msm import (
     msm_alignment_path,
     msm_cost_matrix,
     msm_distance,
     msm_pairwise_distance,
+)
+from aeon.distances._sbd import sbd_distance, sbd_pairwise_distance
+from aeon.distances._shape_dtw import (
+    shape_dtw_alignment_path,
+    shape_dtw_cost_matrix,
+    shape_dtw_distance,
+    shape_dtw_pairwise_distance,
 )
 from aeon.distances._squared import squared_distance, squared_pairwise_distance
 from aeon.distances._twe import (
@@ -49,7 +65,7 @@ from aeon.distances._twe import (
     twe_distance,
     twe_pairwise_distance,
 )
-from aeon.distances._utils import reshape_pairwise_to_multiple
+from aeon.distances._utils import _convert_to_list, _is_multivariate
 from aeon.distances._wddtw import (
     wddtw_alignment_path,
     wddtw_cost_matrix,
@@ -62,7 +78,26 @@ from aeon.distances._wdtw import (
     wdtw_distance,
     wdtw_pairwise_distance,
 )
-from aeon.distances.mpdist import mpdist
+
+
+class DistanceKwargs(TypedDict, total=False):
+    window: Optional[float]
+    itakura_max_slope: Optional[float]
+    p: float
+    w: np.ndarray
+    g: float
+    descriptor: str
+    reach: int
+    epsilon: float
+    g_arr: np.ndarray
+    nu: float
+    lmbda: float
+    independent: bool
+    c: float
+    warp_penalty: float
+    standardize: bool
+    m: int
+
 
 DistanceFunction = Callable[[np.ndarray, np.ndarray, Any], float]
 AlignmentPathFunction = Callable[
@@ -76,23 +111,23 @@ def distance(
     x: np.ndarray,
     y: np.ndarray,
     metric: Union[str, DistanceFunction],
-    **kwargs: Any,
+    **kwargs: Unpack[DistanceKwargs],
 ) -> float:
     """Compute the distance between two time series.
 
     Parameters
     ----------
-    x : np.ndarray, of shape (n_channels, n_timepoints) or (n_timepoints,)
-        First time series.
-    y : np.ndarray, of shape (m_channels, m_timepoints) or (m_timepoints,)
-        Second time series.
+    x : np.ndarray
+        First time series, either univariate, shape ``(n_timepoints,)``, or
+        multivariate, shape ``(n_channels, n_timepoints)``.
+    y : np.ndarray
+        Second time series, either univariate, shape ``(n_timepoints,)``, or
+        multivariate, shape ``(n_channels, n_timepoints)``.
     metric : str or Callable
         The distance metric to use.
-        If a string is given, the value must be one of the following strings:
-        'euclidean', 'squared', 'dtw', 'ddtw', 'wdtw', 'wddtw', 'lcss', 'edr', 'erp',
-        'msm'
-        If a callable is given, the value must be a function that accepts two
-        numpy arrays and **kwargs returns a float.
+        A list of valid distance metrics can be found in the documentation for
+        :func:`aeon.distances.get_distance_function` or by calling  the function
+        :func:`aeon.distances.get_distance_function_names`.
     kwargs : Any
         Arguments for metric. Refer to each metrics documentation for a list of
         possible arguments.
@@ -121,22 +156,69 @@ def distance(
         return squared_distance(x, y)
     elif metric == "euclidean":
         return euclidean_distance(x, y)
+    elif metric == "manhattan":
+        return manhattan_distance(x, y)
+    elif metric == "minkowski":
+        return minkowski_distance(x, y, kwargs.get("p", 2.0), kwargs.get("w", None))
     elif metric == "dtw":
-        return dtw_distance(x, y, kwargs.get("window"))
+        return dtw_distance(x, y, kwargs.get("window"), kwargs.get("itakura_max_slope"))
     elif metric == "ddtw":
-        return ddtw_distance(x, y, kwargs.get("window"))
+        return ddtw_distance(
+            x, y, kwargs.get("window"), kwargs.get("itakura_max_slope")
+        )
     elif metric == "wdtw":
-        return wdtw_distance(x, y, kwargs.get("window"), kwargs.get("g", 0.05))
+        return wdtw_distance(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.05),
+            kwargs.get("itakura_max_slope"),
+        )
+    elif metric == "shape_dtw":
+        return shape_dtw_distance(
+            x,
+            y,
+            window=kwargs.get("window"),
+            itakura_max_slope=kwargs.get("itakura_max_slope"),
+            descriptor=kwargs.get("descriptor", "identity"),
+            reach=kwargs.get("reach", 30),
+            transformation_precomputed=kwargs.get("transformation_precomputed", False),
+            transformed_x=kwargs.get("transformed_x", None),
+            transformed_y=kwargs.get("transformed_y", None),
+        )
     elif metric == "wddtw":
-        return wddtw_distance(x, y, kwargs.get("window"), kwargs.get("g", 0.05))
+        return wddtw_distance(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.05),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "lcss":
-        return lcss_distance(x, y, kwargs.get("window"), kwargs.get("epsilon", 1.0))
+        return lcss_distance(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("epsilon", 1.0),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "erp":
         return erp_distance(
-            x, y, kwargs.get("window"), kwargs.get("g", 0.0), kwargs.get("g_arr", None)
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.0),
+            kwargs.get("g_arr", None),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "edr":
-        return edr_distance(x, y, kwargs.get("window"), kwargs.get("epsilon"))
+        return edr_distance(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("epsilon"),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "twe":
         return twe_distance(
             x,
@@ -144,6 +226,7 @@ def distance(
             kwargs.get("window"),
             kwargs.get("nu", 0.001),
             kwargs.get("lmbda", 1.0),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "msm":
         return msm_distance(
@@ -152,9 +235,20 @@ def distance(
             kwargs.get("window"),
             kwargs.get("independent", True),
             kwargs.get("c", 1.0),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "mpdist":
-        return mpdist(x, y, **kwargs)
+        return mpdist(x, y, kwargs.get("m", 0))
+    elif metric == "adtw":
+        return adtw_distance(
+            x,
+            y,
+            itakura_max_slope=kwargs.get("itakura_max_slope"),
+            window=kwargs.get("window"),
+            warp_penalty=kwargs.get("warp_penalty", 1.0),
+        )
+    elif metric == "sbd":
+        return sbd_distance(x, y, kwargs.get("standardize", True))
     else:
         if isinstance(metric, Callable):
             return metric(x, y, **kwargs)
@@ -163,34 +257,32 @@ def distance(
 
 def pairwise_distance(
     x: np.ndarray,
-    y: np.ndarray = None,
-    metric: Union[str, DistanceFunction] = None,
-    **kwargs: Any,
+    y: Optional[np.ndarray] = None,
+    metric: Union[str, DistanceFunction, None] = None,
+    **kwargs: Unpack[DistanceKwargs],
 ) -> np.ndarray:
     """Compute the pairwise distance matrix between two time series.
 
     Parameters
     ----------
-    X : np.ndarray, of shape (n_instances, n_channels, n_timepoints) or
-            (n_instances, n_timepoints)
-        A collection of time series instances.
-    y : np.ndarray, of shape (m_instances, m_channels, m_timepoints) or
-            (m_instances, m_timepoints) or (m_timepoints,), default=None
-        A collection of time series instances.
+    X : np.ndarray
+        A collection of time series instances  of shape ``(n_cases, n_timepoints)``
+         or ``(n_cases, n_channels, n_timepoints)``.
+    y : np.ndarray or None, default=None
+       A single series or a collection of time series of shape ``(m_timepoints,)`` or
+       ``(m_cases, m_timepoints)`` or ``(m_cases, m_channels, m_timepoints)``
     metric : str or Callable
         The distance metric to use.
-        If a string is given, the value must be one of the following strings:
-        'euclidean', 'squared', 'dtw', 'ddtw', 'wdtw', 'wddtw', 'lcss', 'edr', 'erp',
-        'msm'
-        If a callable is given, the value must be a function that accepts two
-        numpy arrays and **kwargs returns a float.
+        A list of valid distance metrics can be found in the documentation for
+        :func:`aeon.distances.get_distance_function` or by calling  the function
+        :func:`aeon.distances.get_distance_function_names`.
     kwargs : Any
         Extra arguments for metric. Refer to each metric documentation for a list of
         possible arguments.
 
     Returns
     -------
-    np.ndarray (n_instances, n_instances)
+    np.ndarray (n_cases, n_cases)
         pairwise matrix between the instances of X.
 
     Raises
@@ -220,7 +312,7 @@ def pairwise_distance(
            [ 48., 147., 300.]])
 
     >>> X = np.array([[[1, 2, 3]],[[4, 5, 6]], [[7, 8, 9]]])
-    >>> y_univariate = np.array([[11, 12, 13],[14, 15, 16], [17, 18, 19]])
+    >>> y_univariate = np.array([11, 12, 13])
     >>> pairwise_distance(X, y_univariate, metric='dtw')
     array([[300.],
            [147.],
@@ -230,26 +322,73 @@ def pairwise_distance(
         return squared_pairwise_distance(x, y)
     elif metric == "euclidean":
         return euclidean_pairwise_distance(x, y)
+    elif metric == "manhattan":
+        return manhattan_pairwise_distance(x, y)
+    elif metric == "minkowski":
+        return minkowski_pairwise_distance(
+            x, y, kwargs.get("p", 2.0), kwargs.get("w", None)
+        )
     elif metric == "dtw":
-        return dtw_pairwise_distance(x, y, kwargs.get("window"))
+        return dtw_pairwise_distance(
+            x, y, kwargs.get("window"), kwargs.get("itakura_max_slope")
+        )
+    elif metric == "shape_dtw":
+        return shape_dtw_pairwise_distance(
+            x,
+            y,
+            window=kwargs.get("window"),
+            itakura_max_slope=kwargs.get("itakura_max_slope"),
+            descriptor=kwargs.get("descriptor", "identity"),
+            reach=kwargs.get("reach", 30),
+            transformation_precomputed=kwargs.get("transformation_precomputed", False),
+            transformed_x=kwargs.get("transformed_x", None),
+            transformed_y=kwargs.get("transformed_y", None),
+        )
     elif metric == "ddtw":
-        return ddtw_pairwise_distance(x, y, kwargs.get("window"))
+        return ddtw_pairwise_distance(
+            x, y, kwargs.get("window"), kwargs.get("itakura_max_slope")
+        )
     elif metric == "wdtw":
-        return wdtw_pairwise_distance(x, y, kwargs.get("window"), kwargs.get("g", 0.05))
+        return wdtw_pairwise_distance(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.05),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "wddtw":
         return wddtw_pairwise_distance(
-            x, y, kwargs.get("window"), kwargs.get("g", 0.05)
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.05),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "lcss":
         return lcss_pairwise_distance(
-            x, y, kwargs.get("window"), kwargs.get("epsilon", 1.0)
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("epsilon", 1.0),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "erp":
         return erp_pairwise_distance(
-            x, y, kwargs.get("window"), kwargs.get("g", 0.0), kwargs.get("g_arr", None)
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.0),
+            kwargs.get("g_arr", None),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "edr":
-        return edr_pairwise_distance(x, y, kwargs.get("window"), kwargs.get("epsilon"))
+        return edr_pairwise_distance(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("epsilon"),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "twe":
         return twe_pairwise_distance(
             x,
@@ -257,6 +396,7 @@ def pairwise_distance(
             kwargs.get("window"),
             kwargs.get("nu", 0.001),
             kwargs.get("lmbda", 1.0),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "msm":
         return msm_pairwise_distance(
@@ -265,9 +405,20 @@ def pairwise_distance(
             kwargs.get("window"),
             kwargs.get("independent", True),
             kwargs.get("c", 1.0),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "mpdist":
         return _custom_func_pairwise(x, y, mpdist, **kwargs)
+    elif metric == "adtw":
+        return adtw_pairwise_distance(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("itakura_max_slope"),
+            kwargs.get("warp_penalty", 1.0),
+        )
+    elif metric == "sbd":
+        return sbd_pairwise_distance(x, y, kwargs.get("standardize", True))
     else:
         if isinstance(metric, Callable):
             return _custom_func_pairwise(x, y, metric, **kwargs)
@@ -275,31 +426,33 @@ def pairwise_distance(
 
 
 def _custom_func_pairwise(
-    X: np.ndarray,
-    y: np.ndarray = None,
-    dist_func: DistanceFunction = None,
-    **kwargs: Any,
+    X: Optional[Union[np.ndarray, List[np.ndarray]]],
+    y: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
+    dist_func: Union[DistanceFunction, None] = None,
+    **kwargs: Unpack[DistanceKwargs],
 ) -> np.ndarray:
+    if dist_func is None:
+        raise ValueError("dist_func must be a callable")
+
+    multivariate_conversion = _is_multivariate(X, y)
+    X, _ = _convert_to_list(X, "X", multivariate_conversion)
     if y is None:
         # To self
-        if X.ndim == 3:
-            return _custom_pairwise_distance(X, dist_func, **kwargs)
-        if X.ndim == 2:
-            _X = X.reshape((X.shape[0], 1, X.shape[1]))
-            return _custom_pairwise_distance(_X, dist_func, **kwargs)
-        raise ValueError("x and y must be 2D or 3D arrays")
-    _x, _y = reshape_pairwise_to_multiple(X, y)
-    return _custom_from_multiple_to_multiple_distance(_x, _y, dist_func, **kwargs)
+        return _custom_pairwise_distance(X, dist_func, **kwargs)
+    y, _ = _convert_to_list(y, "y", multivariate_conversion)
+    return _custom_from_multiple_to_multiple_distance(X, y, dist_func, **kwargs)
 
 
 def _custom_pairwise_distance(
-    X: np.ndarray, dist_func: DistanceFunction, **kwargs
+    X: Union[np.ndarray, List[np.ndarray]],
+    dist_func: DistanceFunction,
+    **kwargs: Unpack[DistanceKwargs],
 ) -> np.ndarray:
-    n_instances = X.shape[0]
-    distances = np.zeros((n_instances, n_instances))
+    n_cases = len(X)
+    distances = np.zeros((n_cases, n_cases))
 
-    for i in range(n_instances):
-        for j in range(i + 1, n_instances):
+    for i in range(n_cases):
+        for j in range(i + 1, n_cases):
             distances[i, j] = dist_func(X[i], X[j], **kwargs)
             distances[j, i] = distances[i, j]
 
@@ -307,14 +460,17 @@ def _custom_pairwise_distance(
 
 
 def _custom_from_multiple_to_multiple_distance(
-    x: np.ndarray, y: np.ndarray, dist_func: DistanceFunction, **kwargs
+    x: Union[np.ndarray, List[np.ndarray]],
+    y: Union[np.ndarray, List[np.ndarray]],
+    dist_func: DistanceFunction,
+    **kwargs: Unpack[DistanceKwargs],
 ) -> np.ndarray:
-    n_instances = x.shape[0]
-    m_instances = y.shape[0]
-    distances = np.zeros((n_instances, m_instances))
+    n_cases = len(x)
+    m_cases = len(y)
+    distances = np.zeros((n_cases, m_cases))
 
-    for i in range(n_instances):
-        for j in range(m_instances):
+    for i in range(n_cases):
+        for j in range(m_cases):
             distances[i, j] = dist_func(x[i], y[j], **kwargs)
     return distances
 
@@ -323,7 +479,7 @@ def alignment_path(
     x: np.ndarray,
     y: np.ndarray,
     metric: str,
-    **kwargs: Any,
+    **kwargs: Unpack[DistanceKwargs],
 ) -> Tuple[List[Tuple[int, int]], float]:
     """Compute the alignment path and distance between two time series.
 
@@ -334,10 +490,11 @@ def alignment_path(
     y : np.ndarray, of shape (m_channels, m_timepoints) or (m_timepoints,)
         Second time series.
     metric : str
-        The distance metric to use. The value must be one of the following strings:
-        'euclidean', 'squared', 'dtw', 'ddtw', 'wdtw', 'wddtw', 'lcss', 'edr', 'erp',
-        'msm'
-    kwargs : Any
+        The distance metric to use.
+        A list of valid distance metrics can be found in the documentation for
+        :func:`aeon.distances.get_distance_function` or by calling  the function
+        :func:`aeon.distances.get_distance_function_names`.
+    kwargs : any
         Arguments for metric. Refer to each metrics documentation for a list of
         possible arguments.
 
@@ -366,23 +523,66 @@ def alignment_path(
     ([(0, 0), (1, 1), (2, 2), (3, 3)], 4.0)
     """
     if metric == "dtw":
-        return dtw_alignment_path(x, y, kwargs.get("window"))
+        return dtw_alignment_path(
+            x, y, kwargs.get("window"), kwargs.get("itakura_max_slope")
+        )
+    elif metric == "shape_dtw":
+        return shape_dtw_alignment_path(
+            x,
+            y,
+            window=kwargs.get("window"),
+            itakura_max_slope=kwargs.get("itakura_max_slope"),
+            descriptor=kwargs.get("descriptor", "identity"),
+            reach=kwargs.get("reach", 30),
+            transformation_precomputed=kwargs.get("transformation_precomputed", False),
+            transformed_x=kwargs.get("transformed_x", None),
+            transformed_y=kwargs.get("transformed_y", None),
+        )
     elif metric == "ddtw":
-        return ddtw_alignment_path(x, y, kwargs.get("window"))
+        return ddtw_alignment_path(
+            x, y, kwargs.get("window"), kwargs.get("itakura_max_slope")
+        )
     elif metric == "wdtw":
-        return wdtw_alignment_path(x, y, kwargs.get("window"), kwargs.get("g", 0.05))
+        return wdtw_alignment_path(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.05),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "wddtw":
-        return wddtw_alignment_path(x, y, kwargs.get("window"), kwargs.get("g", 0.05))
+        return wddtw_alignment_path(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.05),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "lcss":
         return lcss_alignment_path(
-            x, y, kwargs.get("window"), kwargs.get("epsilon", 1.0)
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("epsilon", 1.0),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "erp":
         return erp_alignment_path(
-            x, y, kwargs.get("window"), kwargs.get("g", 0.0), kwargs.get("g_arr", None)
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.0),
+            kwargs.get("g_arr", None),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "edr":
-        return edr_alignment_path(x, y, kwargs.get("window"), kwargs.get("epsilon"))
+        return edr_alignment_path(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("epsilon"),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "twe":
         return twe_alignment_path(
             x,
@@ -390,6 +590,7 @@ def alignment_path(
             kwargs.get("window"),
             kwargs.get("nu", 0.001),
             kwargs.get("lmbda", 1.0),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "msm":
         return msm_alignment_path(
@@ -398,6 +599,15 @@ def alignment_path(
             kwargs.get("window"),
             kwargs.get("independent", True),
             kwargs.get("c", 1.0),
+            kwargs.get("itakura_max_slope"),
+        )
+    elif metric == "adtw":
+        return adtw_alignment_path(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("itakura_max_slope"),
+            kwargs.get("warp_penalty", 1.0),
         )
     else:
         raise ValueError("Metric must be one of the supported strings")
@@ -407,7 +617,7 @@ def cost_matrix(
     x: np.ndarray,
     y: np.ndarray,
     metric: str,
-    **kwargs: Any,
+    **kwargs: Unpack[DistanceKwargs],
 ) -> np.ndarray:
     """Compute the alignment path and distance between two time series.
 
@@ -418,12 +628,13 @@ def cost_matrix(
     y : np.ndarray, of shape (m_channels, m_timepoints) or (m_timepoints,)
         Second time series.
     metric : str or Callable
-        The distance metric to use. The value must be one of the following strings:
-        'dtw', 'ddtw', 'wdtw', 'wddtw', 'lcss', 'edr', 'erp', 'msm'
+        The distance metric to use.
+        A list of valid distance metrics can be found in the documentation for
+        :func:`aeon.distances.get_distance_function` or by calling  the function
+        :func:`aeon.distances.get_distance_function_names`.
     kwargs : Any
         Arguments for metric. Refer to each metrics documentation for a list of
         possible arguments.
-
 
     Returns
     -------
@@ -455,21 +666,66 @@ def cost_matrix(
            [285., 204., 140.,  91.,  55.,  30.,  14.,   5.,   1.,   0.]])
     """
     if metric == "dtw":
-        return dtw_cost_matrix(x, y, kwargs.get("window"))
+        return dtw_cost_matrix(
+            x, y, kwargs.get("window"), kwargs.get("itakura_max_slope")
+        )
+    elif metric == "shape_dtw":
+        return shape_dtw_cost_matrix(
+            x,
+            y,
+            window=kwargs.get("window"),
+            itakura_max_slope=kwargs.get("itakura_max_slope"),
+            descriptor=kwargs.get("descriptor", "identity"),
+            reach=kwargs.get("reach", 30),
+            transformation_precomputed=kwargs.get("transformation_precomputed", False),
+            transformed_x=kwargs.get("transformed_x", None),
+            transformed_y=kwargs.get("transformed_y", None),
+        )
     elif metric == "ddtw":
-        return ddtw_cost_matrix(x, y, kwargs.get("window"))
+        return ddtw_cost_matrix(
+            x, y, kwargs.get("window"), kwargs.get("itakura_max_slope")
+        )
     elif metric == "wdtw":
-        return wdtw_cost_matrix(x, y, kwargs.get("window"), kwargs.get("g", 0.05))
+        return wdtw_cost_matrix(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.05),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "wddtw":
-        return wddtw_cost_matrix(x, y, kwargs.get("window"), kwargs.get("g", 0.05))
+        return wddtw_cost_matrix(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.05),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "lcss":
-        return lcss_cost_matrix(x, y, kwargs.get("window"), kwargs.get("epsilon", 1.0))
+        return lcss_cost_matrix(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("epsilon", 1.0),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "erp":
         return erp_cost_matrix(
-            x, y, kwargs.get("window"), kwargs.get("g", 0.0), kwargs.get("g_arr", None)
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("g", 0.0),
+            kwargs.get("g_arr", None),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "edr":
-        return edr_cost_matrix(x, y, kwargs.get("window"), kwargs.get("epsilon"))
+        return edr_cost_matrix(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("epsilon"),
+            kwargs.get("itakura_max_slope"),
+        )
     elif metric == "twe":
         return twe_cost_matrix(
             x,
@@ -477,6 +733,7 @@ def cost_matrix(
             kwargs.get("window"),
             kwargs.get("nu", 0.001),
             kwargs.get("lmbda", 1.0),
+            kwargs.get("itakura_max_slope"),
         )
     elif metric == "msm":
         return msm_cost_matrix(
@@ -485,21 +742,75 @@ def cost_matrix(
             kwargs.get("window"),
             kwargs.get("independent", True),
             kwargs.get("c", 1.0),
+            kwargs.get("itakura_max_slope"),
+        )
+    elif metric == "adtw":
+        return adtw_cost_matrix(
+            x,
+            y,
+            kwargs.get("window"),
+            kwargs.get("itakura_max_slope"),
+            kwargs.get("warp_penalty", 1.0),
         )
     else:
         raise ValueError("Metric must be one of the supported strings")
 
 
+def get_distance_function_names() -> List[str]:
+    """Get a list of distance function names in aeon.
+
+    All distance function names have two associated functions:
+        name_distance
+        name_pairwise_distance
+    Elastic distances have two additional functions associated with them:
+        name_alignment_path
+        name_cost_matrix
+
+    Returns
+    -------
+    List[str]
+        List of distance function names in aeon.
+
+    Examples
+    --------
+    >>> from aeon.distances import get_distance_function_names
+    >>> names = get_distance_function_names()
+    >>> names[0]
+    'adtw'
+
+    """
+    return sorted(DISTANCES_DICT.keys())
+
+
 def get_distance_function(metric: Union[str, DistanceFunction]) -> DistanceFunction:
     """Get the distance function for a given metric string or callable.
+
+    =============== ========================================
+    metric          Distance Function
+    =============== ========================================
+    'dtw'           distances.dtw_distance
+    'shape_dtw'     distances.shape_dtw_distance
+    'ddtw'          distances.ddtw_distance
+    'wdtw'          distances.wdtw_distance
+    'wddtw'         distances.wddtw_distance
+    'adtw'          distances.adtw_distance
+    'erp'           distances.erp_distance
+    'edr'           distances.edr_distance
+    'msm'           distances.msm_distance
+    'twe'           distances.twe_distance
+    'lcss'          distances.lcss_distance
+    'euclidean'     distances.euclidean_distance
+    'squared'       distances.squared_distance
+    'manhattan'     distances.manhattan_distance
+    'minkowski'     distances.minkowski_distance
+    'sbd'           distances.sbd_distance
+    =============== ========================================
 
     Parameters
     ----------
     metric : str or Callable
         The distance metric to use.
-        If a string is given, the value must be one of the following strings:
-        'euclidean', 'squared', 'dtw', 'ddtw', 'wdtw', 'wddtw', 'lcss', 'edr', 'erp',
-        'msm', 'mpdist'
+        If string given then it will be resolved to a alignment path function.
         If a callable is given, the value must be a function that accepts two
         numpy arrays and **kwargs returns a float.
 
@@ -531,13 +842,32 @@ def get_pairwise_distance_function(
 ) -> PairwiseFunction:
     """Get the pairwise distance function for a given metric string or callable.
 
+    =============== ========================================
+    metric          Distance Function
+    =============== ========================================
+    'dtw'           distances.dtw_pairwise_distance
+    'shape_dtw'     distances.shape_dtw_pairwise_distance
+    'ddtw'          distances.ddtw_pairwise_distance
+    'wdtw'          distances.wdtw_pairwise_distance
+    'wddtw'         distances.wddtw_pairwise_distance
+    'adtw'          distances.adtw_pairwise_distance
+    'erp'           distances.erp_pairwise_distance
+    'edr'           distances.edr_pairwise_distance
+    'msm'           distances.msm_pairiwse_distance
+    'twe'           distances.twe_pairwise_distance
+    'lcss'          distances.lcss_pairwise_distance
+    'euclidean'     distances.euclidean_pairwise_distance
+    'squared'       distances.squared_pairwise_distance
+    'manhattan'     distances.manhattan_pairwise_distance
+    'minkowski'     distances.minkowski_pairwise_distance
+    'sbd'           distances.sbd_pairwise_distance
+    =============== ========================================
+
     Parameters
     ----------
     metric : str or Callable
-        The distance metric to use.
-        If a string is given, the value must be one of the following strings:
-        'euclidean', 'squared', 'dtw', 'ddtw', 'wdtw', 'wddtw', 'lcss', 'edr', 'erp',
-        'msm'
+        The metric string to resolve to a alignment path function.
+        If string given then it will be resolved to a alignment path function.
         If a callable is given, the value must be a function that accepts two
         numpy arrays and **kwargs returns a np.ndarray that is the pairwise distance
         between each time series.
@@ -570,11 +900,26 @@ def get_pairwise_distance_function(
 def get_alignment_path_function(metric: str) -> AlignmentPathFunction:
     """Get the alignment path function for a given metric string or callable.
 
+    =============== ========================================
+    metric          Distance Function
+    =============== ========================================
+    'dtw'           distances.dtw_alignment_path
+    'shape_dtw'     distances.shape_dtw_alignment_path
+    'ddtw'          distances.ddtw_alignment_path
+    'wdtw'          distances.wdtw_alignment_path
+    'wddtw'         distances.wddtw_alignment_path
+    'adtw'          distances.adtw_alignment_path
+    'erp'           distances.erp_alignment_path
+    'edr'           distances.edr_alignment_path
+    'msm'           distances.msm_alignment_path
+    'twe'           distances.twe_alignment_path
+    'lcss'          distances.lcss_alignment_path
+    =============== ========================================
+
     Parameters
     ----------
     metric : str or Callable
-        The distance metric to use. The value must be one of the following strings:
-        'dtw', 'ddtw', 'wdtw', 'wddtw', 'lcss', 'edr', 'erp', 'msm'
+        The metric string to resolve to a alignment path function.
 
     Returns
     -------
@@ -603,12 +948,26 @@ def get_alignment_path_function(metric: str) -> AlignmentPathFunction:
 def get_cost_matrix_function(metric: str) -> CostMatrixFunction:
     """Get the cost matrix function for a given metric string or callable.
 
+    =============== ========================================
+    metric          Distance Function
+    =============== ========================================
+    'dtw'           distances.dtw_cost_matrix
+    'shape_dtw'     distances.shape_dtw_cost_matrix
+    'ddtw'          distances.ddtw_cost_matrix
+    'wdtw'          distances.wdtw_cost_matrix
+    'wddtw'         distances.wddtw_cost_matrix
+    'adtw'          distances.adtw_cost_matrix
+    'erp'           distances.erp_cost_matrix
+    'edr'           distances.edr_cost_matrix
+    'msm'           distances.msm_cost_matrix
+    'twe'           distances.twe_cost_matrix
+    'lcss'          distances.lcss_cost_matrix
+    =============== ========================================
+
     Parameters
     ----------
     metric : str or Callable
-        The distance metric to use. The value must be one of the following strings:
-        'dtw', 'ddtw', 'wdtw', 'wddtw', 'lcss', 'edr', 'erp', 'msm'
-        two time series.
+        The metric string to resolve to a cost matrix function.
 
     Returns
     -------
@@ -638,7 +997,9 @@ def get_cost_matrix_function(metric: str) -> CostMatrixFunction:
     return _resolve_key_from_distance(metric, "cost_matrix")
 
 
-def _resolve_key_from_distance(metric: str, key: str) -> Any:
+def _resolve_key_from_distance(metric: Union[str, Callable], key: str) -> Any:
+    if isinstance(metric, Callable):
+        return metric
     if metric == "mpdist":
         return mpdist
     dist = DISTANCES_DICT.get(metric)
@@ -660,6 +1021,16 @@ DISTANCES = [
         "name": "squared",
         "distance": squared_distance,
         "pairwise_distance": squared_pairwise_distance,
+    },
+    {
+        "name": "manhattan",
+        "distance": manhattan_distance,
+        "pairwise_distance": manhattan_pairwise_distance,
+    },
+    {
+        "name": "minkowski",
+        "distance": minkowski_distance,
+        "pairwise_distance": minkowski_pairwise_distance,
     },
     {
         "name": "dtw",
@@ -723,6 +1094,25 @@ DISTANCES = [
         "pairwise_distance": msm_pairwise_distance,
         "cost_matrix": msm_cost_matrix,
         "alignment_path": msm_alignment_path,
+    },
+    {
+        "name": "adtw",
+        "distance": adtw_distance,
+        "pairwise_distance": adtw_pairwise_distance,
+        "cost_matrix": adtw_cost_matrix,
+        "alignment_path": adtw_alignment_path,
+    },
+    {
+        "name": "shape_dtw",
+        "distance": shape_dtw_distance,
+        "pairwise_distance": shape_dtw_pairwise_distance,
+        "cost_matrix": shape_dtw_cost_matrix,
+        "alignment_path": shape_dtw_alignment_path,
+    },
+    {
+        "name": "sbd",
+        "distance": sbd_distance,
+        "pairwise_distance": sbd_pairwise_distance,
     },
 ]
 

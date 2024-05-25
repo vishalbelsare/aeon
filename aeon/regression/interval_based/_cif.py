@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# copyright: aeon developers, BSD-3-Clause License (see LICENSE file)
 """CIF regressor.
 
 Interval-based CIF regressor extracting catch22 features from random intervals.
@@ -9,7 +7,7 @@ import numpy as np
 
 from aeon.base.estimator.interval_based import BaseIntervalForest
 from aeon.regression import BaseRegressor
-from aeon.transformations.collection import Catch22
+from aeon.transformations.collection.feature_based import Catch22
 from aeon.utils.numba.stats import row_mean, row_slope, row_std
 
 
@@ -87,8 +85,6 @@ class CanonicalIntervalForestRegressor(BaseIntervalForest, BaseRegressor):
         Wraps the C based pycatch22 implementation for aeon.
         (https://github.com/DynamicsAndNeuralSystems/pycatch22). This requires the
         ``pycatch22`` package to be installed if True.
-    save_transformed_data : bool, default=False
-        Save the data transformed in fit for use in _get_train_preds.
     random_state : int, RandomState instance or None, default=None
         If `int`, random_state is the seed used by the random number generator;
         If `RandomState` instance, random_state is the random number generator;
@@ -105,7 +101,7 @@ class CanonicalIntervalForestRegressor(BaseIntervalForest, BaseRegressor):
 
     Attributes
     ----------
-    n_instances_ : int
+    n_cases_ : int
         The number of train cases in the training set.
     n_channels_ : int
         The number of dimensions per case in the training set.
@@ -117,10 +113,6 @@ class CanonicalIntervalForestRegressor(BaseIntervalForest, BaseRegressor):
         The collections of estimators trained in fit.
     intervals_ : list of shape (n_estimators) of TransformerMixin
         Stores the interval extraction transformer for all estimators.
-    transformed_data_ : list of shape (n_estimators) of ndarray with shape
-    (n_instances_ ,total_intervals * att_subsample_size)
-        The transformed dataset for all regressors. Only saved when
-        save_transformed_data is true.
 
     See Also
     --------
@@ -136,7 +128,7 @@ class CanonicalIntervalForestRegressor(BaseIntervalForest, BaseRegressor):
     Examples
     --------
     >>> from aeon.regression.interval_based import CanonicalIntervalForestRegressor
-    >>> from aeon.datasets import make_example_3d_numpy
+    >>> from aeon.testing.utils.data_gen import make_example_3d_numpy
     >>> X, y = make_example_3d_numpy(n_cases=10, n_channels=1, n_timepoints=12,
     ...                              return_y=True, regression_target=True,
     ...                              random_state=0)
@@ -167,14 +159,11 @@ class CanonicalIntervalForestRegressor(BaseIntervalForest, BaseRegressor):
         time_limit_in_minutes=None,
         contract_max_n_estimators=500,
         use_pycatch22=False,
-        save_transformed_data=False,
         random_state=None,
         n_jobs=1,
         parallel_backend=None,
     ):
         self.use_pycatch22 = use_pycatch22
-        if use_pycatch22:
-            self.set_tags(**{"python_dependencies": "pycatch22"})
 
         interval_features = [
             Catch22(outlier_norm=True, use_pycatch22=use_pycatch22),
@@ -183,7 +172,7 @@ class CanonicalIntervalForestRegressor(BaseIntervalForest, BaseRegressor):
             row_slope,
         ]
 
-        super(CanonicalIntervalForestRegressor, self).__init__(
+        super().__init__(
             base_estimator=base_estimator,
             n_estimators=n_estimators,
             interval_selection_method="random",
@@ -196,11 +185,13 @@ class CanonicalIntervalForestRegressor(BaseIntervalForest, BaseRegressor):
             replace_nan=0,
             time_limit_in_minutes=time_limit_in_minutes,
             contract_max_n_estimators=contract_max_n_estimators,
-            save_transformed_data=save_transformed_data,
             random_state=random_state,
             n_jobs=n_jobs,
             parallel_backend=parallel_backend,
         )
+
+        if use_pycatch22:
+            self.set_tags(**{"python_dependencies": "pycatch22"})
 
     @classmethod
     def get_test_params(cls, parameter_set="default"):
@@ -218,9 +209,6 @@ class CanonicalIntervalForestRegressor(BaseIntervalForest, BaseRegressor):
                 "contracting" - used in classifiers that set the
                     "capability:contractable" tag to True to test contacting
                     functionality
-                "train_estimate" - used in some classifiers that set the
-                    "capability:train_estimate" tag to True to allow for more efficient
-                    testing when relevant parameters are available
 
         Returns
         -------
@@ -238,13 +226,6 @@ class CanonicalIntervalForestRegressor(BaseIntervalForest, BaseRegressor):
                 "contract_max_n_estimators": 2,
                 "n_intervals": 2,
                 "att_subsample_size": 2,
-            }
-        elif parameter_set == "train_estimate":
-            return {
-                "n_estimators": 2,
-                "n_intervals": 2,
-                "att_subsample_size": 2,
-                "save_transformed_data": True,
             }
         else:
             return {"n_estimators": 2, "n_intervals": 2, "att_subsample_size": 2}

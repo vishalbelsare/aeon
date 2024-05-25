@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Extension template for early time series classifiers.
 
@@ -14,7 +13,7 @@ How to use this implementation template to implement a new estimator:
 - you can add more private methods, but do not override BaseEstimator's private methods
     an easy way to be safe is to prefix your methods with "_custom"
 - change docstrings for functions and the file
-- ensure interface compatibility by aeon.utils.estimator_checks.check_estimator
+- ensure interface compatibility by aeon.testing.estimator_checks.check_estimator
 - once complete: use as a local library, or contribute to aeon via PR
 - more details:
     https://www.aeon-toolkit.org/en/stable/developer_guide/add_estimators.html
@@ -34,6 +33,7 @@ Optional implements:
 Testing - implement if aeon early classifier (not needed locally):
     get default parameters for test instance(s) - get_test_params()
 """
+
 from typing import Tuple
 
 import numpy as np
@@ -52,9 +52,9 @@ class MyEarlyTimeSeriesClassifier(BaseEarlyClassifier):
     ----------------
     parama : int
         descriptive explanation of parama
-    paramb : string, optional (default='default')
+    paramb : string, default='default'
         descriptive explanation of paramb
-    paramc : boolean, optional (default= whether paramb is not the default)
+    paramc : boolean, default= whether paramb is not the default
         descriptive explanation of paramc
     and so on
 
@@ -70,7 +70,7 @@ class MyEarlyTimeSeriesClassifier(BaseEarlyClassifier):
     # optional todo: override base class estimator default tags here if necessary
     # these are the default values, only add if different to these.
     _tags = {
-        "X_inner_mtype": "numpy3D",  # which type do _fit/_predict accept, usually
+        "X_inner_type": "numpy3D",  # which type do _fit/_predict accept, usually
         # this is either "numpy3D". Other
         # types are allowable, see datatypes/panel/_registry.py for options.
         "capability:multivariate": False,
@@ -93,7 +93,7 @@ class MyEarlyTimeSeriesClassifier(BaseEarlyClassifier):
         self.paramc = paramc
 
         # todo: change "MyEarlyTimeSeriesClassifier" to the name of the class
-        super(MyEarlyTimeSeriesClassifier, self).__init__()
+        super().__init__()
 
         # todo: optional, parameter checking logic (if applicable) should happen here
         # if writes derived values to self, should *not* overwrite self.parama etc
@@ -123,8 +123,8 @@ class MyEarlyTimeSeriesClassifier(BaseEarlyClassifier):
 
         Parameters
         ----------
-        X : Training data of type self.get_tag("X_inner_mtype")
-        y : array-like, shape = [n_instances] - the class labels
+        X : Training data of type self.get_tag("X_inner_type")
+        y : array-like, shape = [n_cases] - the class labels
 
         Returns
         -------
@@ -157,7 +157,7 @@ class MyEarlyTimeSeriesClassifier(BaseEarlyClassifier):
 
         Parameters
         ----------
-        X : data not used in training, of type self.get_tag("X_inner_mtype")
+        X : data not used in training, of type self.get_tag("X_inner_type")
 
         Returns
         -------
@@ -188,7 +188,7 @@ class MyEarlyTimeSeriesClassifier(BaseEarlyClassifier):
 
         Parameters
         ----------
-        X : data not used in training, of type self.get_tag("X_inner_mtype")
+        X : data not used in training, of type self.get_tag("X_inner_type")
 
         Returns
         -------
@@ -224,7 +224,7 @@ class MyEarlyTimeSeriesClassifier(BaseEarlyClassifier):
 
         Parameters
         ----------
-        X : data to predict y with, of type self.get_tag("X_inner_mtype")
+        X : data to predict y with, of type self.get_tag("X_inner_type")
 
         Returns
         -------
@@ -259,7 +259,7 @@ class MyEarlyTimeSeriesClassifier(BaseEarlyClassifier):
 
         Parameters
         ----------
-        X : data to predict y with, of type self.get_tag("X_inner_mtype")
+        X : data to predict y with, of type self.get_tag("X_inner_type")
 
         Returns
         -------
@@ -284,8 +284,8 @@ class MyEarlyTimeSeriesClassifier(BaseEarlyClassifier):
 
         Parameters
         ----------
-        X : data not used in training, of type self.get_tag("X_inner_mtype")
-        y : array-like, shape = [n_instances] - the class labels
+        X : data not used in training, of type self.get_tag("X_inner_type")
+        y : array-like, shape = [n_cases] - the class labels
 
         Returns
         -------

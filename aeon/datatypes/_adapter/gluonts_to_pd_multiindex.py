@@ -1,4 +1,8 @@
-# -*- coding: utf-8 -*-
+import pandas as pd
+
+from aeon.datatypes import convert_to
+
+
 def convert_gluonts_result_to_multiindex(gluonts_result):
     """
 
@@ -20,10 +24,6 @@ def convert_gluonts_result_to_multiindex(gluonts_result):
     A MultiIndex DF mtype type compatible with aeon.
 
     """
-    import pandas as pd
-
-    from aeon.datatypes import convert_to
-
     instance_no = len(gluonts_result)
     global_ls = []
     per_instance_ls = []

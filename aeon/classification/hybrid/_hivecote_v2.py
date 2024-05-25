@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-# copyright: aeon developers, BSD-3-Clause License (see LICENSE file)
 """Hierarchical Vote Collective of Transformation-based Ensembles (HIVE-COTE) V2.
 
 Upgraded hybrid ensemble of classifiers from 4 separate time series classification
 representations, using the weighted probabilistic CAWPE as an ensemble controller.
 """
 
-__author__ = ["MatthewMiddlehurst"]
+__maintainer__ = []
 __all__ = ["HIVECOTEV2"]
 
 from datetime import datetime
@@ -27,7 +25,7 @@ class HIVECOTEV2(BaseClassifier):
     Hierarchical Vote Collective of Transformation-based Ensembles (HIVE-COTE) V2.
 
     An ensemble of the STC, DrCIF, Arsenal and TDE classifiers from different feature
-    representations using the CAWPE structure as described in [1].
+    representations using the CAWPE structure as described in [1]_.
 
     Parameters
     ----------
@@ -147,16 +145,24 @@ class HIVECOTEV2(BaseClassifier):
         self._arsenal = None
         self._tde = None
 
-        super(HIVECOTEV2, self).__init__()
+        super().__init__()
+
+    _DEFAULT_N_TREES = 500
+    _DEFAULT_N_SHAPELETS = 10000
+    _DEFAULT_N_KERNELS = 2000
+    _DEFAULT_N_ESTIMATORS = 25
+    _DEFAULT_N_PARA_SAMPLES = 250
+    _DEFAULT_MAX_ENSEMBLE_SIZE = 50
+    _DEFAULT_RAND_PARAMS = 50
 
     def _fit(self, X, y):
         """Fit HIVE-COTE 2.0 to training data.
 
         Parameters
         ----------
-        X : 3D np.array of shape = [n_instances, n_dimensions, series_length]
+        X : 3D np.ndarray of shape = [n_cases, n_channels, n_timepoints]
             The training data.
-        y : array-like, shape = [n_instances]
+        y : array-like, shape = [n_cases]
             The class labels.
 
         Returns
@@ -169,15 +175,21 @@ class HIVECOTEV2(BaseClassifier):
         Changes state by creating a fitted model that updates attributes
         ending in "_" and sets is_fitted flag to True.
         """
-        # Default values from HC2 paper
         if self.stc_params is None:
-            self._stc_params = {"transform_limit_in_minutes": 120}
+            self._stc_params = {"n_shapelet_samples": HIVECOTEV2._DEFAULT_N_SHAPELETS}
         if self.drcif_params is None:
-            self._drcif_params = {"n_estimators": 500}
+            self._drcif_params = {"n_estimators": HIVECOTEV2._DEFAULT_N_TREES}
         if self.arsenal_params is None:
-            self._arsenal_params = {}
+            self._arsenal_params = {
+                "num_kernels": HIVECOTEV2._DEFAULT_N_KERNELS,
+                "n_estimators": HIVECOTEV2._DEFAULT_N_ESTIMATORS,
+            }
         if self.tde_params is None:
-            self._tde_params = {}
+            self._tde_params = {
+                "n_parameter_samples": HIVECOTEV2._DEFAULT_N_PARA_SAMPLES,
+                "max_ensemble_size": HIVECOTEV2._DEFAULT_MAX_ENSEMBLE_SIZE,
+                "randomly_selected_params": HIVECOTEV2._DEFAULT_RAND_PARAMS,
+            }
 
         # If we are contracting split the contract time between each algorithm
         if self.time_limit_in_minutes > 0:
@@ -191,97 +203,53 @@ class HIVECOTEV2(BaseClassifier):
         # Build STC
         self._stc = ShapeletTransformClassifier(
             **self._stc_params,
-            save_transformed_data=True,
             random_state=self.random_state,
             n_jobs=self._n_jobs,
         )
-        self._stc.fit(X, y)
-
-        if self.verbose > 0:
-            print("STC ", datetime.now().strftime("%H:%M:%S %d/%m/%Y"))  # noqa
-
-        # Find STC weight using train set estimate
-        train_probs = self._stc._get_train_probs(X, y)
-        train_preds = self._stc.classes_[np.argmax(train_probs, axis=1)]
+        train_preds = self._stc.fit_predict(X, y)
         self.stc_weight_ = accuracy_score(y, train_preds) ** 4
 
         if self.verbose > 0:
-            print(  # noqa
-                "STC train estimate ",
-                datetime.now().strftime("%H:%M:%S %d/%m/%Y"),
-            )
+            print("STC ", datetime.now().strftime("%H:%M:%S %d/%m/%Y"))  # noqa
             print("STC weight = " + str(self.stc_weight_))  # noqa
 
         # Build DrCIF
         self._drcif = DrCIFClassifier(
             **self._drcif_params,
-            save_transformed_data=True,
             random_state=self.random_state,
             n_jobs=self._n_jobs,
         )
-        self._drcif.fit(X, y)
-
-        if self.verbose > 0:
-            print("DrCIF ", datetime.now().strftime("%H:%M:%S %d/%m/%Y"))  # noqa
-
-        # Find DrCIF weight using train set estimate
-        train_probs = self._drcif._get_train_probs(X, y)
-        train_preds = self._drcif.classes_[np.argmax(train_probs, axis=1)]
+        train_preds = self._drcif.fit_predict(X, y)
         self.drcif_weight_ = accuracy_score(y, train_preds) ** 4
 
         if self.verbose > 0:
-            print(  # noqa
-                "DrCIF train estimate ",
-                datetime.now().strftime("%H:%M:%S %d/%m/%Y"),
-            )
+            print("DrCIF ", datetime.now().strftime("%H:%M:%S %d/%m/%Y"))  # noqa
             print("DrCIF weight = " + str(self.drcif_weight_))  # noqa
 
         # Build Arsenal
         self._arsenal = Arsenal(
             **self._arsenal_params,
-            save_transformed_data=True,
             random_state=self.random_state,
             n_jobs=self._n_jobs,
         )
-        self._arsenal.fit(X, y)
-
-        if self.verbose > 0:
-            print("Arsenal ", datetime.now().strftime("%H:%M:%S %d/%m/%Y"))  # noqa
-
-        # Find Arsenal weight using train set estimate
-        train_probs = self._arsenal._get_train_probs(X, y)
-        train_preds = self._arsenal.classes_[np.argmax(train_probs, axis=1)]
+        train_preds = self._arsenal.fit_predict(X, y)
         self.arsenal_weight_ = accuracy_score(y, train_preds) ** 4
 
         if self.verbose > 0:
-            print(  # noqa
-                "Arsenal train estimate ",
-                datetime.now().strftime("%H:%M:%S %d/%m/%Y"),
-            )
+            print("Arsenal ", datetime.now().strftime("%H:%M:%S %d/%m/%Y"))  # noqa
             print("Arsenal weight = " + str(self.arsenal_weight_))  # noqa
 
         # Build TDE
         self._tde = TemporalDictionaryEnsemble(
             **self._tde_params,
-            save_train_predictions=True,
             random_state=self.random_state,
             n_jobs=self._n_jobs,
         )
-        self._tde.fit(X, y)
-
-        if self.verbose > 0:
-            print("TDE ", datetime.now().strftime("%H:%M:%S %d/%m/%Y"))  # noqa
-
-        # Find TDE weight using train set estimate
-        train_probs = self._tde._get_train_probs(X, y, train_estimate_method="loocv")
-        train_preds = self._tde.classes_[np.argmax(train_probs, axis=1)]
+        train_preds = self._tde.fit_predict(X, y)
         self.tde_weight_ = accuracy_score(y, train_preds) ** 4
 
         if self.verbose > 0:
-            print(  # noqa
-                "TDE train estimate ",
-                datetime.now().strftime("%H:%M:%S %d/%m/%Y"),
-            )
+            print("TDE ", datetime.now().strftime("%H:%M:%S %d/%m/%Y"))  # noqa
             print("TDE weight = " + str(self.tde_weight_))  # noqa
 
         return self
@@ -291,12 +259,12 @@ class HIVECOTEV2(BaseClassifier):
 
         Parameters
         ----------
-        X : 3D np.array of shape = [n_instances, n_dimensions, series_length]
+        X : 3D np.ndarray of shape = [n_cases, n_channels, n_timepoints]
             The data to make predictions for.
 
         Returns
         -------
-        y : array-like, shape = [n_instances]
+        y : array-like, shape = [n_cases]
             Predicted class labels.
         """
         rng = check_random_state(self.random_state)
@@ -312,12 +280,12 @@ class HIVECOTEV2(BaseClassifier):
 
         Parameters
         ----------
-        X : 3D np.array of shape = [n_instances, n_dimensions, series_length]
+        X : 3D np.ndarray of shape = [n_cases, n_channels, n_timepoints]
             The data to make predict probabilities for.
 
         Returns
         -------
-        y : array-like, shape = [n_instances, n_classes_]
+        y : array-like, shape = [n_cases, n_classes_]
             Predicted probabilities using the ordering in classes_.
         """
         dists = np.zeros((X.shape[0], self.n_classes_))

@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """WEASEL classifier.
 
 Dictionary based classifier based on SFA transform, BOSS and linear regression.
 """
 
-__author__ = ["patrickzib", "Arik Ermshaus"]
+__maintainer__ = []
 __all__ = ["WEASEL"]
 
 import math
@@ -22,9 +21,9 @@ from aeon.transformations.collection.dictionary_based import SFAFast
 
 class WEASEL(BaseClassifier):
     """
-    Word Extraction for Time Series Classification (WEASEL) [1].
+    Word Extraction for Time Series Classification (WEASEL).
 
-    Overview: Input 'n' series length 'm'
+    As described in [1]_. Overview: Input 'n' series length 'm'
     WEASEL is a dictionary classifier that builds a bag-of-patterns using SFA
     for different window lengths and learns a logistic regression classifier
     on this bag.
@@ -85,8 +84,11 @@ class WEASEL(BaseClassifier):
         If set to True, a LogisticRegression will be trained, which does support
         predict_proba(), yet is slower and typically less accurate. predict_proba() is
         needed for example in Early-Classification like TEASER.
-    random_state : int or None, default=None
-        Seed for random.
+    random_state : int, RandomState instance or None, default=None
+        If `int`, random_state is the seed used by the random number generator;
+        If `RandomState` instance, random_state is the random number generator;
+        If `None`, the random number generator is the `RandomState` instance used
+        by `np.random`.
 
     See Also
     --------
@@ -151,14 +153,14 @@ class WEASEL(BaseClassifier):
         self.window_inc = window_inc
         self.highest_bit = -1
         self.window_sizes = []
-        self.series_length = 0
-        self.n_instances = 0
+        self.n_timepoints = 0
+        self.n_cases = 0
         self.SFA_transformers = []
         self.clf = None
         self.n_jobs = n_jobs
         self.support_probabilities = support_probabilities
         set_num_threads(n_jobs)
-        super(WEASEL, self).__init__()
+        super().__init__()
 
     def _fit(self, X, y):
         """Build a WEASEL classifiers from the training set (X, y).
@@ -166,9 +168,9 @@ class WEASEL(BaseClassifier):
         Parameters
         ----------
         X : 3D np.ndarray
-            The training data shape = (n_instances, n_channels, n_timepoints).
+            The training data shape = (n_cases, n_channels, n_timepoints).
         y : 1D np.ndarray
-            The class labels shape = (n_instances).
+            The class labels shape = (n_cases).
 
         Returns
         -------
@@ -176,16 +178,16 @@ class WEASEL(BaseClassifier):
             Reference to self.
         """
         # Window length parameter space dependent on series length
-        self.n_instances, self.series_length = X.shape[0], X.shape[-1]
+        self.n_cases, self.n_timepoints = X.shape[0], X.shape[-1]
 
         win_inc = self._compute_window_inc()
-        self.max_window = int(min(self.series_length, self.max_window))
+        self.max_window = int(min(self.n_timepoints, self.max_window))
         if self.min_window > self.max_window:
             raise ValueError(
                 f"Error in WEASEL, min_window ="
                 f"{self.min_window} is bigger"
                 f" than max_window ={self.max_window},"
-                f" series length is {self.series_length}"
+                f" series length is {self.n_timepoints}"
                 f" try set min_window to be smaller than series length in "
                 f"the constructor, but the classifier may not work at "
                 f"all with very short series"
@@ -217,7 +219,7 @@ class WEASEL(BaseClassifier):
         if type(all_words[0]) is np.ndarray:
             all_words = np.concatenate(all_words, axis=1)
         else:
-            all_words = hstack((all_words))
+            all_words = hstack(all_words)
 
         # Ridge Classifier does not give probabilities
         if not self.support_probabilities:
@@ -247,13 +249,13 @@ class WEASEL(BaseClassifier):
         Parameters
         ----------
         X : 3D np.ndarray
-            The data to make predictions for, shape = (n_instances, n_channels,
+            The data to make predictions for, shape = (n_cases, n_channels,
             n_timepoints).
 
         Returns
         -------
         1D np.ndarray
-            Predicted class labels shape = (n_instances).
+            Predicted class labels shape = (n_cases).
         """
         bag = self._transform_words(X)
         return self.clf.predict(bag)
@@ -264,13 +266,13 @@ class WEASEL(BaseClassifier):
         Parameters
         ----------
         X : 3D np.ndarray
-            The data to make predictions for, shape = (n_instances, n_channels,
+            The data to make predictions for, shape = (n_cases, n_channels,
             n_timepoints).
 
         Returns
         -------
         2D np.ndarray
-            Predicted class labels shape = (n_instances).
+            Predicted class labels shape = (n_cases).
         """
         bag = self._transform_words(X)
         if self.support_probabilities:
@@ -289,11 +291,11 @@ class WEASEL(BaseClassifier):
         return (
             np.concatenate(all_words, axis=1)
             if type(all_words[0]) is np.ndarray
-            else hstack((all_words))
+            else hstack(all_words)
         )
 
     def _compute_window_inc(self):
-        return 1 if self.series_length < 100 else self.window_inc
+        return 1 if self.n_timepoints < 100 else self.window_inc
 
     @classmethod
     def get_test_params(cls, parameter_set="default"):

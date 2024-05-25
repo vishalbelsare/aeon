@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-# copyright: aeon developers, BSD-3-Clause License (see LICENSE file)
 """Tests for BaseObject universal base class that require aeon or sklearn imports."""
 
-__author__ = ["fkiraly"]
+__maintainer__ = []
 
 
 def test_get_fitted_params_sklearn():

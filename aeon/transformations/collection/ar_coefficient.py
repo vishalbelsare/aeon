@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-# copyright: aeon developers, BSD-3-Clause License (see LICENSE file)
 """AR coefficient feature transformer."""
 
-__author__ = ["MatthewMiddlehurst"]
+__maintainer__ = []
 __all__ = ["ARCoefficientTransformer"]
 
 
@@ -22,7 +20,7 @@ class ARCoefficientTransformer(BaseCollectionTransformer):
     ----------
     order : int or callable, default=100
         The order of the autoregression. If callable, the function should take a 3D
-        numpy array of shape (n_instances, n_channels, n_timepoints) and return an
+        numpy array of shape (n_cases, n_channels, n_timepoints) and return an
         integer.
     min_values : int, default=0
         Always transform at least this many values unless the series length is too
@@ -33,9 +31,9 @@ class ARCoefficientTransformer(BaseCollectionTransformer):
     Examples
     --------
     >>> from aeon.transformations.collection import ARCoefficientTransformer
-    >>> from aeon.datasets import make_example_3d_numpy
+    >>> from aeon.testing.utils.data_gen import make_example_3d_numpy
     >>> X = make_example_3d_numpy(n_cases=4, n_channels=2, n_timepoints=20,
-    ...                           random_state=0)
+    ...                           random_state=0, return_y=False)
     >>> tnf = ARCoefficientTransformer(order=5)  # doctest: +SKIP
     >>> tnf.fit(X)  # doctest: +SKIP
     ARCoefficientTransformer(...)
@@ -45,7 +43,9 @@ class ARCoefficientTransformer(BaseCollectionTransformer):
     """
 
     _tags = {
+        "capability:multivariate": True,
         "python_dependencies": "statsmodels",
+        "fit_is_empty": True,
     }
 
     def __init__(
@@ -58,12 +58,12 @@ class ARCoefficientTransformer(BaseCollectionTransformer):
         self.min_values = min_values
         self.replace_nan = replace_nan
 
-        super(ARCoefficientTransformer, self).__init__()
+        super().__init__()
 
     def _transform(self, X, y=None):
         from statsmodels.regression.linear_model import burg
 
-        n_instances, n_channels, n_timepoints = X.shape
+        n_cases, n_channels, n_timepoints = X.shape
 
         order = self.order(X) if callable(self.order) else self.order
         if order > n_timepoints - self.min_values:
@@ -77,8 +77,8 @@ class ARCoefficientTransformer(BaseCollectionTransformer):
                 f"({n_timepoints - 1})."
             )
 
-        Xt = np.zeros((n_instances, n_channels, order))
-        for i in range(n_instances):
+        Xt = np.zeros((n_cases, n_channels, order))
+        for i in range(n_cases):
             for n in range(n_channels):
                 coefs, _ = burg(X[i, n], order=order)
                 Xt[i, n] = coefs

@@ -1,11 +1,12 @@
-# -*- coding: utf-8 -*-
 """Edit distance for real sequences (EDR) between two time series."""
-__author__ = ["chrisholder", "TonyBagnall"]
 
-from typing import List, Tuple
+__maintainer__ = []
+
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 from numba import njit
+from numba.typed import List as NumbaList
 
 from aeon.distances._alignment_paths import (
     _add_inf_to_out_of_bounds_cost_matrix,
@@ -13,20 +14,35 @@ from aeon.distances._alignment_paths import (
 )
 from aeon.distances._bounding_matrix import create_bounding_matrix
 from aeon.distances._euclidean import _univariate_euclidean_distance
-from aeon.distances._utils import reshape_pairwise_to_multiple
+from aeon.distances._utils import _convert_to_list, _is_multivariate
 
 
 @njit(cache=True, fastmath=True)
 def edr_distance(
-    x: np.ndarray, y: np.ndarray, window: float = None, epsilon: float = None
+    x: np.ndarray,
+    y: np.ndarray,
+    window: Optional[float] = None,
+    epsilon: Optional[float] = None,
+    itakura_max_slope: Optional[float] = None,
 ) -> float:
-    """Compute the edr distance between two time series.
+    r"""Compute the EDR distance between two time series.
 
-    Edit Distance  was adapted in [1]_ for distances between trajectories. Like LCSS,
-    EDR uses a distance threshold to define when two elements of a series match.
-    However, rather than simply count matches and look for the longest sequence,
-    EDR applies a (constant) penalty for non-matching elements
+    Edit Distance on Real Sequences (EDR) was proposed as an adaptation of standard
+    edit distance on discrete sequences in [1]_, specifically for distances between
+    trajectories. Like LCSS, EDR uses a distance threshold to define when two
+    elements of a series match. However, rather than simply count matches and look
+    for the longest sequence, EDR applies a (constant) penalty for non-matching elements
     where gaps are inserted to create an optimal alignment.
+
+    .. math::
+        if \;\; |ai − bj | < ϵ\\
+            c &= 0\\
+        else\\
+            c &= 1\\
+        match  &=  D_{i-1,j-1}+ c)\\
+        delete &=   D_{i-1,j}+ d({x_{i},g})\\
+        insert &=  D_{i-1,j-1}+ d({g,y_{j}})\\
+        D_{i,j} &= min(match,insert, delete)
 
     EDR computes the minimum number of elements (as a percentage) that must be removed
     from x and y so that the sum of the distance between the remaining signal elements
@@ -38,10 +54,12 @@ def edr_distance(
 
     Parameters
     ----------
-    x : np.ndarray, of shape (n_channels, n_timepoints) or (n_timepoints,)
-        First time series.
-    y : np.ndarray, of shape (m_channels, m_timepoints) or (m_timepoints,)
-        Second time series.
+    x : np.ndarray
+        First time series, either univariate, shape ``(n_timepoints,)``, or
+        multivariate, shape ``(n_channels, n_timepoints)``.
+    y : np.ndarray
+        Second time series, either univariate, shape ``(n_timepoints,)``, or
+        multivariate, shape ``(n_channels, n_timepoints)``.
     window : float, default=None
         The window to use for the bounding matrix. If None, no bounding matrix
         is used.
@@ -49,11 +67,14 @@ def edr_distance(
         Matching threshold to determine if two subsequences are considered close
         enough to be considered 'common'. If not specified as per the original paper
         epsilon is set to a quarter of the maximum standard deviation.
+    itakura_max_slope : float, default=None
+        Maximum slope as a proportion of the number of time points used to create
+        Itakura parallelogram on the bounding matrix. Must be between 0. and 1.
 
     Returns
     -------
     float
-        edr distance between x and y.
+        EDR distance between x and y.
 
     Raises
     ------
@@ -73,43 +94,54 @@ def edr_distance(
     >>> from aeon.distances import edr_distance
     >>> x = np.array([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])
     >>> y = np.array([[11, 12, 13, 14, 15, 16, 17, 18, 19, 20]])
-    >>> dist = edr_distance(x, y)
+    >>> edr_distance(x, y)
+    1.0
     """
     if x.ndim == 1 and y.ndim == 1:
         _x = x.reshape((1, x.shape[0]))
         _y = y.reshape((1, y.shape[0]))
-        bounding_matrix = create_bounding_matrix(_x.shape[1], _y.shape[1], window)
+        bounding_matrix = create_bounding_matrix(
+            _x.shape[1], _y.shape[1], window, itakura_max_slope
+        )
         return _edr_distance(_x, _y, bounding_matrix, epsilon)
     if x.ndim == 2 and y.ndim == 2:
-        bounding_matrix = create_bounding_matrix(x.shape[1], y.shape[1], window)
+        bounding_matrix = create_bounding_matrix(
+            x.shape[1], y.shape[1], window, itakura_max_slope
+        )
         return _edr_distance(x, y, bounding_matrix, epsilon)
     raise ValueError("x and y must be 1D or 2D")
 
 
 @njit(cache=True, fastmath=True)
 def edr_cost_matrix(
-    x: np.ndarray, y: np.ndarray, window: float = None, epsilon: float = None
+    x: np.ndarray,
+    y: np.ndarray,
+    window: Optional[float] = None,
+    epsilon: Optional[float] = None,
+    itakura_max_slope: Optional[float] = None,
 ) -> np.ndarray:
-    """Compute the edr cost matrix between two time series.
+    """Compute the EDR cost matrix between two time series.
 
     Parameters
     ----------
-    x : np.ndarray, of shape (n_channels, n_timepoints) or (n_timepoints,)
-        First time series.
-    y : np.ndarray, of shape (m_channels, m_timepoints) or (m_timepoints,)
-        Second time series.
-    window : float, default=None
-        The window to use for the bounding matrix. If None, no bounding matrix
-        is used.
+    x : np.ndarray
+        First time series, either univariate, shape ``(n_timepoints,)``, or
+        multivariate, shape ``(n_channels, n_timepoints)``.
+    y : np.ndarray
+        Second time series, either univariate, shape ``(n_timepoints,)``, or
+        multivariate, shape ``(n_channels, n_timepoints)``.
     epsilon : float, default=None
         Matching threshold to determine if two subsequences are considered close
         enough to be considered 'common'. If not specified as per the original paper
         epsilon is set to a quarter of the maximum standard deviation.
+    itakura_max_slope : float, default=None
+        Maximum slope as a proportion of the number of time points used to create
+        Itakura parallelogram on the bounding matrix. Must be between 0. and 1.
 
     Returns
     -------
     np.ndarray (n_timepoints, m_timepoints)
-        edr cost matrix between x and y.
+        EDR cost matrix between x and y.
 
     Raises
     ------
@@ -137,17 +169,24 @@ def edr_cost_matrix(
     if x.ndim == 1 and y.ndim == 1:
         _x = x.reshape((1, x.shape[0]))
         _y = y.reshape((1, y.shape[0]))
-        bounding_matrix = create_bounding_matrix(_x.shape[1], _y.shape[1], window)
+        bounding_matrix = create_bounding_matrix(
+            _x.shape[1], _y.shape[1], window, itakura_max_slope
+        )
         return _edr_cost_matrix(_x, _y, bounding_matrix, epsilon)
     if x.ndim == 2 and y.ndim == 2:
-        bounding_matrix = create_bounding_matrix(x.shape[1], y.shape[1], window)
+        bounding_matrix = create_bounding_matrix(
+            x.shape[1], y.shape[1], window, itakura_max_slope
+        )
         return _edr_cost_matrix(x, y, bounding_matrix, epsilon)
     raise ValueError("x and y must be 1D or 2D")
 
 
 @njit(cache=True, fastmath=True)
 def _edr_distance(
-    x: np.ndarray, y: np.ndarray, bounding_matrix: np.ndarray, epsilon: float = None
+    x: np.ndarray,
+    y: np.ndarray,
+    bounding_matrix: np.ndarray,
+    epsilon: Optional[float] = None,
 ) -> float:
     distance = _edr_cost_matrix(x, y, bounding_matrix, epsilon)[
         x.shape[1] - 1, y.shape[1] - 1
@@ -157,12 +196,15 @@ def _edr_distance(
 
 @njit(cache=True, fastmath=True)
 def _edr_cost_matrix(
-    x: np.ndarray, y: np.ndarray, bounding_matrix: np.ndarray, epsilon: float = None
+    x: np.ndarray,
+    y: np.ndarray,
+    bounding_matrix: np.ndarray,
+    epsilon: Optional[float] = None,
 ) -> np.ndarray:
     x_size = x.shape[1]
     y_size = y.shape[1]
     if epsilon is None:
-        epsilon = max(np.std(x), np.std(y)) / 4
+        epsilon = float(max(np.std(x), np.std(y))) / 4
 
     cost_matrix = np.zeros((x_size + 1, y_size + 1))
 
@@ -181,20 +223,25 @@ def _edr_cost_matrix(
     return cost_matrix[1:, 1:]
 
 
-@njit(cache=True, fastmath=True)
 def edr_pairwise_distance(
-    X: np.ndarray, y: np.ndarray = None, window: float = None, epsilon: float = None
+    X: Union[np.ndarray, List[np.ndarray]],
+    y: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
+    window: Optional[float] = None,
+    epsilon: Optional[float] = None,
+    itakura_max_slope: Optional[float] = None,
 ) -> np.ndarray:
-    """Compute the pairwise edr distance between a set of time series.
+    """Compute the pairwise EDR distance between a set of time series.
 
     Parameters
     ----------
-    X : np.ndarray, of shape (n_instances, n_channels, n_timepoints) or
-            (n_instances, n_timepoints)
-        A collection of time series instances.
-    y : np.ndarray, of shape (m_instances, m_channels, m_timepoints) or
-            (m_instances, m_timepoints) or (m_timepoints,), default=None
-        A collection of time series instances.
+    X : np.ndarray or List of np.ndarray
+        A collection of time series instances  of shape ``(n_cases, n_timepoints)``
+        or ``(n_cases, n_channels, n_timepoints)``.
+    y : np.ndarray or List of np.ndarray or None, default=None
+        A single series or a collection of time series of shape ``(m_timepoints,)`` or
+        ``(m_cases, m_timepoints)`` or ``(m_cases, m_channels, m_timepoints)``.
+        If None, then the edr pairwise distance between the instances of X is
+        calculated.
     window : float, default=None
         The window to use for the bounding matrix. If None, no bounding matrix
         is used.
@@ -202,11 +249,14 @@ def edr_pairwise_distance(
         Matching threshold to determine if two subsequences are considered close
         enough to be considered 'common'. If not specified as per the original paper
         epsilon is set to a quarter of the maximum standard deviation.
+    itakura_max_slope : float, default=None
+        Maximum slope as a proportion of the number of time points used to create
+        Itakura parallelogram on the bounding matrix. Must be between 0. and 1.
 
     Returns
     -------
-    np.ndarray (n_instances, n_instances)
-        edr pairwise matrix between the instances of X.
+    np.ndarray (n_cases, n_cases)
+        EDR pairwise matrix between the instances of X.
 
     Raises
     ------
@@ -234,35 +284,58 @@ def edr_pairwise_distance(
            [1., 1., 1.]])
 
     >>> X = np.array([[[1, 2, 3]],[[4, 5, 6]], [[7, 8, 9]]])
-    >>> y_univariate = np.array([[11, 12, 13],[14, 15, 16], [17, 18, 19]])
+    >>> y_univariate = np.array([11, 12, 13])
     >>> edr_pairwise_distance(X, y_univariate)
     array([[1.],
            [1.],
            [1.]])
+
+    >>> # Distance between each TS in a collection of unequal-length time series
+    >>> X = [np.array([1, 2, 3]), np.array([4, 5, 6, 7]), np.array([8, 9, 10, 11, 12])]
+    >>> edr_pairwise_distance(X)
+    array([[0.  , 0.75, 0.6 ],
+           [0.75, 0.  , 0.8 ],
+           [0.6 , 0.8 , 0.  ]])
     """
+    multivariate_conversion = _is_multivariate(X, y)
+    _X, unequal_length = _convert_to_list(X, "X", multivariate_conversion)
+
     if y is None:
         # To self
-        if X.ndim == 3:
-            return _edr_pairwise_distance(X, window, epsilon)
-        if X.ndim == 2:
-            _X = X.reshape((X.shape[0], 1, X.shape[1]))
-            return _edr_pairwise_distance(_X, window, epsilon)
-        raise ValueError("x and y must be 2D or 3D arrays")
-    _x, _y = reshape_pairwise_to_multiple(X, y)
-    return _edr_from_multiple_to_multiple_distance(_x, _y, window, epsilon)
+        return _edr_pairwise_distance(
+            _X, window, epsilon, itakura_max_slope, unequal_length
+        )
+
+    _y, unequal_length = _convert_to_list(y, "y", multivariate_conversion)
+    return _edr_from_multiple_to_multiple_distance(
+        _X, _y, window, epsilon, itakura_max_slope, unequal_length
+    )
 
 
 @njit(cache=True, fastmath=True)
 def _edr_pairwise_distance(
-    X: np.ndarray, window: float, epsilon: float = None
+    X: NumbaList[np.ndarray],
+    window: Optional[float],
+    epsilon: Optional[float],
+    itakura_max_slope: Optional[float],
+    unequal_length: bool,
 ) -> np.ndarray:
-    n_instances = X.shape[0]
-    distances = np.zeros((n_instances, n_instances))
-    bounding_matrix = create_bounding_matrix(X.shape[2], X.shape[2], window)
+    n_cases = len(X)
+    distances = np.zeros((n_cases, n_cases))
 
-    for i in range(n_instances):
-        for j in range(i + 1, n_instances):
-            distances[i, j] = _edr_distance(X[i], X[j], bounding_matrix, epsilon)
+    if not unequal_length:
+        n_timepoints = X[0].shape[1]
+        bounding_matrix = create_bounding_matrix(
+            n_timepoints, n_timepoints, window, itakura_max_slope
+        )
+    for i in range(n_cases):
+        for j in range(i + 1, n_cases):
+            x1, x2 = X[i], X[j]
+            if unequal_length:
+                bounding_matrix = create_bounding_matrix(
+                    x1.shape[1], x2.shape[1], window, itakura_max_slope
+                )
+            distances[i, j] = _edr_distance(x1, x2, bounding_matrix, epsilon)
             distances[j, i] = distances[i, j]
 
     return distances
@@ -270,31 +343,48 @@ def _edr_pairwise_distance(
 
 @njit(cache=True, fastmath=True)
 def _edr_from_multiple_to_multiple_distance(
-    x: np.ndarray, y: np.ndarray, window: float, epsilon: float = None
+    x: NumbaList[np.ndarray],
+    y: NumbaList[np.ndarray],
+    window: Optional[float],
+    epsilon: Optional[float],
+    itakura_max_slope: Optional[float],
+    unequal_length: bool,
 ) -> np.ndarray:
-    n_instances = x.shape[0]
-    m_instances = y.shape[0]
-    distances = np.zeros((n_instances, m_instances))
-    bounding_matrix = create_bounding_matrix(x.shape[2], y.shape[2], window)
+    n_cases = len(x)
+    m_cases = len(y)
+    distances = np.zeros((n_cases, m_cases))
 
-    for i in range(n_instances):
-        for j in range(m_instances):
-            distances[i, j] = _edr_distance(x[i], y[j], bounding_matrix, epsilon)
+    if not unequal_length:
+        bounding_matrix = create_bounding_matrix(
+            x[0].shape[1], y[0].shape[1], window, itakura_max_slope
+        )
+    for i in range(n_cases):
+        for j in range(m_cases):
+            x1, y1 = x[i], y[j]
+            if unequal_length:
+                bounding_matrix = create_bounding_matrix(
+                    x1.shape[1], y1.shape[1], window, itakura_max_slope
+                )
+            distances[i, j] = _edr_distance(x1, y1, bounding_matrix, epsilon)
     return distances
 
 
 @njit(cache=True, fastmath=True)
 def edr_alignment_path(
-    x: np.ndarray, y: np.ndarray, window: float = None, epsilon: float = None
+    x: np.ndarray,
+    y: np.ndarray,
+    window: Optional[float] = None,
+    epsilon: Optional[float] = None,
+    itakura_max_slope: Optional[float] = None,
 ) -> Tuple[List[Tuple[int, int]], float]:
-    """Compute the edr alignment path between two time series.
+    """Compute the EDR alignment path between two time series.
 
     Parameters
     ----------
-    x : np.ndarray, of shape (n_channels, n_timepoints) or (n_timepoints,)
-        First time series.
-    y : np.ndarray, of shape (m_channels, m_timepoints) or (m_timepoints,)
-        Second time series.
+    x : np.ndarray
+        First time series, shape ``(n_channels, n_timepoints)`` or ``(n_timepoints,)``.
+    y : np.ndarray
+        Second time series, shape ``(m_channels, m_timepoints)`` or ``(m_timepoints,)``.
     window : float, default=None
         The window to use for the bounding matrix. If None, no bounding matrix
         is used.
@@ -302,6 +392,9 @@ def edr_alignment_path(
         Matching threshold to determine if two subsequences are considered close
         enough to be considered 'common'. If not specified as per the original paper
         epsilon is set to a quarter of the maximum standard deviation.
+    itakura_max_slope : float, default=None
+        Maximum slope as a proportion of the number of time points used to create
+        Itakura parallelogram on the bounding matrix. Must be between 0. and 1.
 
     Returns
     -------
@@ -310,7 +403,7 @@ def edr_alignment_path(
         of the index in x and the index in y that have the best alignment according
         to the cost matrix.
     float
-        The edr distance between the two time series.
+        The EDR distance between the two time series.
 
     Raises
     ------
@@ -328,8 +421,8 @@ def edr_alignment_path(
     """
     x_size = x.shape[-1]
     y_size = y.shape[-1]
-    bounding_matrix = create_bounding_matrix(x_size, y_size, window)
-    cost_matrix = edr_cost_matrix(x, y, window, epsilon)
+    bounding_matrix = create_bounding_matrix(x_size, y_size, window, itakura_max_slope)
+    cost_matrix = edr_cost_matrix(x, y, window, epsilon, itakura_max_slope)
     # Need to do this because the cost matrix contains 0s and not inf in out of bounds
     cost_matrix = _add_inf_to_out_of_bounds_cost_matrix(cost_matrix, bounding_matrix)
     return compute_min_return_path(cost_matrix), float(

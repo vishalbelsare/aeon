@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test Truncator transformer."""
 
 import numpy as np
@@ -52,6 +51,7 @@ def test_truncation_parameterised_transformer():
 
 
 def test_truncation_fill_unequal_length():
+    """Tes TruncationTransformer handles unequal length data correctly."""
     X = []
     for i in range(10):
         X.append(np.random.random((10, 15 + i)))

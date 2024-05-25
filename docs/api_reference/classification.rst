@@ -1,14 +1,13 @@
 .. _classification_ref:
 
-Time series classification
-==========================
+Classification
+==============
 
 The :mod:`aeon.classification` module contains algorithms and composition tools for time series classification.
 
-All classifiers in ``aeon`` can be listed using the ``aeon.registry
-.all_estimators`` utility,
+All classifiers in `aeon`  can be listed using the `aeon.registry.all_estimators` utility,
 using ``estimator_types="classifier"``, optionally filtered by tags.
-Valid tags can be listed using ``aeon.registry.all_tags``.
+Valid tags can be listed by calling the function `aeon.registry.all_tags`.
 
 Convolution-based
 -----------------
@@ -20,6 +19,8 @@ Convolution-based
     :template: class.rst
 
     Arsenal
+    HydraClassifier
+    MultiRocketHydraClassifier
     RocketClassifier
 
 Deep learning
@@ -32,10 +33,14 @@ Deep learning
     :template: class.rst
 
     CNNClassifier
+    EncoderClassifier
     FCNClassifier
-    MLPClassifier
     InceptionTimeClassifier
     IndividualInceptionClassifier
+    IndividualLITEClassifier
+    LITETimeClassifier
+    MLPClassifier
+    ResNetClassifier
     TapNetClassifier
 
 Dictionary-based
@@ -52,6 +57,7 @@ Dictionary-based
     IndividualBOSS
     IndividualTDE
     MUSE
+    REDCOMETS
     TemporalDictionaryEnsemble
     WEASEL
     WEASEL_V2
@@ -67,7 +73,6 @@ Distance-based
 
     ElasticEnsemble
     KNeighborsTimeSeriesClassifier
-    ShapeDTW
 
 Feature-based
 -------------
@@ -80,7 +85,6 @@ Feature-based
 
     Catch22Classifier
     FreshPRINCEClassifier
-    MatrixProfileClassifier
     SignatureClassifier
     SummaryClassifier
     TSFreshClassifier
@@ -96,6 +100,7 @@ Hybrid
 
     HIVECOTEV1
     HIVECOTEV2
+    RISTClassifier
 
 Interval-based
 --------------
@@ -106,12 +111,16 @@ Interval-based
     :toctree: auto_generated/
     :template: class.rst
 
-    CanonicalIntervalForest
-    DrCIF
-    RandomIntervalSpectralEnsemble
+    CanonicalIntervalForestClassifier
+    DrCIFClassifier
+    IntervalForestClassifier
+    QUANTClassifier
+    RandomIntervalClassifier
+    RandomIntervalSpectralEnsembleClassifier
+    RSTSF
+    SupervisedIntervalClassifier
     SupervisedTimeSeriesForest
     TimeSeriesForestClassifier
-    RandomIntervalClassifier
 
 Shapelet-based
 --------------
@@ -122,9 +131,11 @@ Shapelet-based
     :toctree: auto_generated/
     :template: class.rst
 
-    ShapeletTransformClassifier
+    LearningShapeletClassifier
     MrSQMClassifier
     RDSTClassifier
+    SASTClassifier
+    ShapeletTransformClassifier
 
 sklearn
 -------
@@ -181,7 +192,6 @@ Composition
 
     ClassifierPipeline
     ChannelEnsembleClassifier
-    SklearnClassifierPipeline
     WeightedEnsembleClassifier
 
 

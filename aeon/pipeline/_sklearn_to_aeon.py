@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """Sklearn to aeon coercion utility."""
-# copyright: aeon developers, BSD-3-Clause License (see LICENSE file).
 
-__author__ = ["fkiraly"]
+__maintainer__ = ["MatthewMiddlehurst"]
 
 from aeon.pipeline._make_pipeline import make_pipeline
+from aeon.transformations.collection import Tabularizer
 
 
 def sklearn_to_aeon(estimator):
@@ -12,9 +11,6 @@ def sklearn_to_aeon(estimator):
 
     Creates a pipeline of two elements, the identity transformer and the estimator.
     The identity transformer acts as adapter and holds aeon base class logic.
-
-    Developer note:
-    Type dispatch logic is in the transformer base class, in the `__mul__` dunder.
 
     Parameters
     ----------
@@ -28,6 +24,4 @@ def sklearn_to_aeon(estimator):
         by flattening time series. Assumes equal length time series.
         transformers are converted to time series transformer by application per series
     """
-    from aeon.transformations.compose import Id
-
-    return make_pipeline(Id(), estimator)
+    return make_pipeline(Tabularizer(), estimator)

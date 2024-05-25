@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# copyright: aeon developers, BSD-3-Clause License (see LICENSE file)
 """Interval-based time series classifiers."""
 
 __all__ = [
@@ -12,6 +10,7 @@ __all__ = [
     "RSTSF",
     "SupervisedTimeSeriesForest",
     "TimeSeriesForestClassifier",
+    "QUANTClassifier",
 ]
 
 from aeon.classification.interval_based._cif import CanonicalIntervalForestClassifier
@@ -21,6 +20,7 @@ from aeon.classification.interval_based._interval_pipelines import (
     RandomIntervalClassifier,
     SupervisedIntervalClassifier,
 )
+from aeon.classification.interval_based._quant import QUANTClassifier
 from aeon.classification.interval_based._rise import (
     RandomIntervalSpectralEnsembleClassifier,
 )

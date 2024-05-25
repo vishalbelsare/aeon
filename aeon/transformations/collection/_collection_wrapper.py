@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-# copyright: aeon developers, BSD-3-Clause License (see LICENSE file)
 """A wrapper to treat a BaseCollectionTransformer as a BaseTransformer."""
 
-__author__ = ["MatthewMiddlehurst"]
+__maintainer__ = []
 __all__ = ["CollectionToSeriesWrapper"]
 
 from aeon.base._base import _clone_estimator
@@ -34,7 +32,7 @@ class CollectionToSeriesWrapper(BaseTransformer):
     Examples
     --------
     >>> from aeon.transformations.collection import CollectionToSeriesWrapper
-    >>> from aeon.transformations.collection.catch22 import Catch22
+    >>> from aeon.transformations.collection.feature_based import Catch22
     >>> from aeon.datasets import load_airline
     >>> y = load_airline()
     >>> wrap = CollectionToSeriesWrapper(Catch22())
@@ -46,7 +44,7 @@ class CollectionToSeriesWrapper(BaseTransformer):
     """
 
     _tags = {
-        "X_inner_mtype": BaseCollectionTransformer.ALLOWED_INPUT_TYPES,
+        "X_inner_type": BaseCollectionTransformer.ALLOWED_INPUT_TYPES,
     }
 
     def __init__(
@@ -57,7 +55,7 @@ class CollectionToSeriesWrapper(BaseTransformer):
         self.transformer = transformer
         self.transformer_ = _clone_estimator(self.transformer)
 
-        super(CollectionToSeriesWrapper, self).__init__(_output_convert=_output_convert)
+        super().__init__(_output_convert=_output_convert)
         self.clone_tags(transformer)
 
     def _fit_transform(self, X, y=None):
@@ -93,6 +91,6 @@ class CollectionToSeriesWrapper(BaseTransformer):
             `MyClass(**params)` or `MyClass(**params[i])` creates a valid test instance.
             `create_test_instance` uses the first (or only) dictionary in `params`.
         """
-        from aeon.transformations.collection.rocket import Rocket
+        from aeon.transformations.collection.convolution_based import Rocket
 
         return {"transformer": Rocket(num_kernels=50)}

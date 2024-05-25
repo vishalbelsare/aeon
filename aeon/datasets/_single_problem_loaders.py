@@ -1,21 +1,6 @@
-# -*- coding: utf-8 -*-
 """Utilities for loading datasets."""
 
-__author__ = [
-    "mloning",
-    "sajaysurya",
-    "big-o",
-    "SebasKoel",
-    "Emiliathewolf",
-    "TonyBagnall",
-    "yairbeer",
-    "patrickZIB",
-    "aiwalter",
-    "jasonlines",
-    "achieveordie",
-    "ciaran-g",
-]
-
+__maintainer__ = []
 __all__ = [
     "load_airline",
     "load_plaid",
@@ -47,8 +32,8 @@ from warnings import warn
 import numpy as np
 import pandas as pd
 
+from aeon.datasets import load_from_tsf_file
 from aeon.datasets._data_loaders import _load_saved_dataset, _load_tsc_dataset
-from aeon.datasets._dataframe_loaders import load_tsf_to_dataframe
 from aeon.utils.validation._dependencies import _check_soft_dependencies
 
 DIRNAME = "data"
@@ -66,7 +51,7 @@ def load_gunpoint(split=None, return_X_y=True, return_type="numpy3d"):
     return_X_y: bool, default=True
         If True, returns (features, target) separately instead of as single data
         structure.
-    return_type: string, optional (default="numpy3d")
+    return_type: string, default="numpy3d"
         Data structure to use for time series, should be either "numpy2d" or "numpy3d".
 
     Raises
@@ -112,7 +97,7 @@ def load_osuleaf(split=None, return_X_y=True, return_type="numpy3d"):
     return_X_y: bool, default=True
         If True, returns (features, target) separately instead of as single data
         structure.
-    return_type: string, optional (default="numpy3d")
+    return_type: string, default="numpy3d"
         Data structure to use for time series, should be either "numpy2d" or "numpy3d".
 
     Raises
@@ -158,7 +143,7 @@ def load_italy_power_demand(split=None, return_X_y=True, return_type="numpy3d"):
     return_X_y: bool, default=True
         If True, returns (features, target) separately instead of as single data
         structure.
-    return_type: string, optional (default="numpy3d")
+    return_type: string, default="numpy3d"
         Data structure to use for time series, should be either "numpy2d" or "numpy3d".
 
     Raises
@@ -211,7 +196,7 @@ def load_unit_test(split=None, return_X_y=True, return_type="numpy3d"):
     return_X_y: bool, default=True
         If True, returns (features, target) separately instead of as single data
         structure.
-    return_type: string, optional (default="numpy3d")
+    return_type: string, default="numpy3d"
         Data structure containing series, should be either "numpy2d" or "numpy3d".
 
     Raises
@@ -260,7 +245,7 @@ def load_arrow_head(split=None, return_X_y=True, return_type="numpy3d"):
     return_X_y: bool, default=True
         If True, returns (features, target) separately instead of as single data
         structure.
-    return_type: string, optional (default="numpy3d")
+    return_type: string, default="numpy3d"
         Data structure to use for time series, should be either "numpy2d" or "numpy3d".
 
     Raises
@@ -308,7 +293,7 @@ def load_acsf1(split=None, return_X_y=True, return_type="numpy3d"):
     return_X_y: bool, default=True
         If True, returns (features, target) separately instead of as single data
         structure.
-    return_type: string, optional (default="numpy3d")
+    return_type: string, default="numpy3d"
         Data structure to use for time series, should be either "numpy2d" or "numpy3d".
 
     Raises
@@ -357,7 +342,7 @@ def load_basic_motions(split=None, return_X_y=True, return_type="numpy3d"):
     return_X_y: bool, default=True
         If True, returns (features, target) separately instead of as single data
         structure.
-    return_type: string, optional (default="numpy3d")
+    return_type: string, default="numpy3d"
         Data structure to use for time series, should be "numpy3d" or "np-list".
 
     Raises
@@ -383,7 +368,7 @@ def load_basic_motions(split=None, return_X_y=True, return_type="numpy3d"):
     Number of classes:  4
     Details:http://www.timeseriesclassification.com/description.php?Dataset=BasicMotions
     """
-    if return_type == "numpy2d" or return_type == "numpyflat":
+    if return_type == "numpy2d" or return_type == "numpy2D":
         raise ValueError(
             f"BasicMotions loader: Error, attempting to load into a {return_type} "
             f"array, but cannot because it is a multivariate problem. Use "
@@ -445,10 +430,10 @@ def load_japanese_vowels(split=None, return_X_y=True, return_type="np-list"):
 
     Parameters
     ----------
-    split: None or one of "TRAIN", "TEST", optional (default=None)
+    split: None or one of "TRAIN", "TEST", default=None
         Whether to load the train or test instances of the problem. By default it
         loads both train and test instances into a single array.
-    return_X_y: bool, optional (default=True)
+    return_X_y: bool, default=True
         If True, returns (features, target) separately instead of a single
         dataframe with columns for features and the target.
     return_type: string, default="np-list"
@@ -525,7 +510,7 @@ def load_longley(y_name="TOTEMP"):
 
     Parameters
     ----------
-    y_name: str, optional (default="TOTEMP")
+    y_name: str, default="TOTEMP"
         Name of target variable (y)
 
     Returns
@@ -900,9 +885,16 @@ def load_macroeconomic():
     return y
 
 
-def load_unit_test_tsf():
+def load_unit_test_tsf(return_type="tsf_default"):
     """
     Load tsf UnitTest dataset.
+
+    Parameters
+    ----------
+    return_type : str - "pd_multiindex_hier" or "tsf_default" (default)
+        - "tsf_default" = container that faithfully mirrors tsf format from the original
+            implementation in: https://github.com/rakshitha123/TSForecasting/
+            blob/master/utils/data_loader.py.
 
     Returns
     -------
@@ -918,20 +910,13 @@ def load_unit_test_tsf():
         Whether the series have equal lengths or not.
     """
     path = os.path.join(MODULE, DIRNAME, "UnitTest", "UnitTest_Tsf_Loader.tsf")
-    (
-        loaded_data,
-        frequency,
-        forecast_horizon,
-        contain_missing_values,
-        contain_equal_length,
-    ) = load_tsf_to_dataframe(path)
-
+    data, meta = load_from_tsf_file(path, return_type=return_type)
     return (
-        loaded_data,
-        frequency,
-        forecast_horizon,
-        contain_missing_values,
-        contain_equal_length,
+        data,
+        meta["frequency"],
+        meta["forecast_horizon"],
+        meta["contain_missing_values"],
+        meta["contain_equal_length"],
     )
 
 
@@ -996,13 +981,11 @@ def load_solar(
         api_version="v4",
     ):
         """Private loader, for decoration with backoff."""
-        url = "https://api0.solar.sheffield.ac.uk/pvlive/api/"
-        url = url + api_version + "/gsp/0?"
-        url = url + "start=" + start + "T00:00:00&"
-        url = url + "end=" + end + "T00:00:00&"
-        url = url + "extra_fields=capacity_mwp&"
-        url = url + "data_format=csv"
-
+        url = (
+            f"https://api0.solar.sheffield.ac.uk/pvlive/api/"
+            f"{api_version}/gsp/0?start={start}T00:00:00&end={end}"
+            f"extra_fields=capacity_mwp&data_format=csv"
+        )
         df = (
             pd.read_csv(
                 url, index_col=["gsp_id", "datetime_gmt"], parse_dates=["datetime_gmt"]
@@ -1022,28 +1005,23 @@ def load_solar(
             else:
                 return df["generation_mw"].rename("solar_gen")
 
-    tries = 5
-    for i in range(tries):
-        try:
-            return _load_solar(
-                start=start,
-                end=end,
-                normalise=normalise,
-                return_full_df=return_full_df,
-                api_version=api_version,
-            )
-        except (URLError, HTTPError):
-            if i < tries - 1:
-                continue
-            else:
-                warn(
-                    """
+    try:
+        return _load_solar(
+            start=start,
+            end=end,
+            normalise=normalise,
+            return_full_df=return_full_df,
+            api_version=api_version,
+        )
+    except (URLError, HTTPError):
+        warn(
+            """
                     Error detected using API. Check connection, input arguments, and
                     API status here https://www.solar.sheffield.ac.uk/pvlive/api/.
                     Loading stored sample data instead.
                     """
-                )
-                return y
+        )
+        return y
 
 
 def load_covid_3month(split=None, return_X_y=True, return_type="numpy3d"):
@@ -1051,14 +1029,14 @@ def load_covid_3month(split=None, return_X_y=True, return_type="numpy3d"):
 
     Parameters
     ----------
-    split: None or str{"train", "test"}, optional (default=None)
+    split: None or str{"train", "test"}, default=None
         Whether to load the train or test partition of the problem. By
         default, it loads both.
-    return_X_y: bool, optional (default=True)
+    return_X_y: bool, default=True
         If True, returns (features, target) separately instead of a single
         dataframe with columns for
         features and the target.
-    return_type: string, optional (default="numpy3d")
+    return_type: string, default="numpy3d"
         Data structure to use for time series, should be either "numpy2d" or "numpy3d".
 
     Returns
@@ -1106,14 +1084,14 @@ def load_cardano_sentiment(split=None, return_X_y=True, return_type="numpy3d"):
 
     Parameters
     ----------
-    split: None or str{"train", "test"}, optional (default=None)
+    split: None or str{"train", "test"}, default=None
         Whether to load the train or test partition of the problem. By
         default, it loads both.
-    return_X_y: bool, optional (default=True)
+    return_X_y: bool, default=True
         If True, returns (features, target) separately instead of a single
         dataframe with columns for
         features and the target.
-    return_type: string, optional (default="numpy3d")
+    return_type: string, default="numpy3d"
         Data structure to use for time series, should be either "numpy2d" or "numpy3d".
 
     Returns

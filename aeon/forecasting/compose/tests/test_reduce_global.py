@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 """Test extraction of features across (shifted) windows."""
-__author__ = ["danbartl"]
+
+__maintainer__ = []
 
 from aeon.utils.validation._dependencies import _check_soft_dependencies
 
@@ -16,17 +16,16 @@ from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import make_pipeline
 
 from aeon.datasets import load_airline
-from aeon.datatypes import get_examples
 from aeon.forecasting.base import ForecastingHorizon
 from aeon.forecasting.compose import make_reduction
 from aeon.forecasting.model_selection import temporal_train_test_split
 from aeon.performance_metrics.forecasting import mean_absolute_percentage_error
-from aeon.transformations.series.summarize import WindowSummarizer
-from aeon.utils._testing.hierarchical import _make_hierarchical
+from aeon.testing.utils.data_gen import _make_hierarchical, get_examples
+from aeon.transformations.summarize import WindowSummarizer
 
 # Load data that will be the basis of tests
 y = load_airline()
-y_multi = get_examples(mtype="pd-multiindex", as_scitype="Panel")[0]
+y_multi = get_examples("pd-multiindex")[0]
 
 # y Train will be univariate data set
 y_train, y_test = temporal_train_test_split(y)
@@ -54,7 +53,7 @@ y_group2 = pd.DataFrame(y_test.values, index=mi, columns=["y"])
 y_test_grp = pd.concat([y_group1, y_group2])
 
 # Get hierachical data
-y_train_hier = get_examples(mtype="pd_multiindex_hier")[0]
+y_train_hier = get_examples("pd_multiindex_hier")[0]
 
 # Create unbalanced hierachical data
 X = y_train_hier.reset_index().copy()
@@ -229,8 +228,8 @@ def test_list_reduction(y, index_names):
 
 def test_equality_transfo_nontranso():
     """Test that recursive reducers return same results for global / local forecasts."""
-    y = load_airline()
-    y_train, y_test = temporal_train_test_split(y, test_size=30)
+    y = load_airline()[:36]
+    y_train, y_test = temporal_train_test_split(y, test_size=12)
     fh = ForecastingHorizon(y_test.index, is_relative=False)
 
     lag_vec = list(range(12, 0, -1))

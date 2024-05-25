@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Configuration file for the Sphinx documentation builder."""
 
 import os
@@ -46,6 +44,7 @@ extensions = [
     "sphinx_issues",
     "sphinx_copybutton",
     "sphinx_remove_toctrees",
+    "versionwarning.extension",
     "myst_parser",
 ]
 
@@ -133,10 +132,10 @@ remove_from_toctrees = ["api_reference/auto_generated/*"]
 # the corresponding warning that this override happens.
 suppress_warnings = ["myst.mathjax"]
 
-# Recommended by sphinx_design when using the MyST Parser
-myst_enable_extensions = ["colon_fence", "html_image"]
+# "colon_fence" and "html_image" recommended by sphinx_design when using the MyST Parser
+myst_enable_extensions = ["colon_fence", "html_image", "attrs_inline"]
 
-myst_heading_anchors = 2
+myst_heading_anchors = 4
 
 
 def linkcode_resolve(domain, info):
@@ -172,7 +171,7 @@ def linkcode_resolve(domain, info):
         filename = "aeon/%s#L%d-L%d" % find_source()
     except Exception:
         filename = info["module"].replace(".", "/") + ".py"
-    return "https://github.com/aeon-toolkit/aeon/blob/%s/%s" % (
+    return "https://github.com/aeon-toolkit/aeon/blob/{}/{}".format(
         github_tag,
         filename,
     )
@@ -204,7 +203,7 @@ html_theme_options = {
     "footer_icons": [
         {
             "name": "Slack",
-            "url": "https://join.slack.com/t/aeon-toolkit/shared_invite/zt-1plkevy4x-vAg1dAUXcuoR38FjY9nxzg",  # noqa: E501
+            "url": "https://join.slack.com/t/aeon-toolkit/shared_invite/zt-22vwvut29-HDpCu~7VBUozyfL_8j3dLA",  # noqa: E501
             "html": """
             <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
                 <path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zM361.5 580.2c0 27.8-22.5 50.4-50.3 50.4-13.3 0-26.1-5.3-35.6-14.8-9.4-9.5-14.7-22.3-14.7-35.6 0-27.8 22.5-50.4 50.3-50.4h50.3v50.4zm134 134.4c0 27.8-22.5 50.4-50.3 50.4-27.8 0-50.3-22.6-50.3-50.4V580.2c0-27.8 22.5-50.4 50.3-50.4 13.3 0 26.1 5.3 35.6 14.8s14.7 22.3 14.7 35.6v134.4zm-50.2-218.4h-134c-27.8 0-50.3-22.6-50.3-50.4 0-27.8 22.5-50.4 50.3-50.4h134c27.8 0 50.3 22.6 50.3 50.4-.1 27.9-22.6 50.4-50.3 50.4zm0-134.4c-13.3 0-26.1-5.3-35.6-14.8S395 324.8 395 311.4c0-27.8 22.5-50.4 50.3-50.4 27.8 0 50.3 22.6 50.3 50.4v50.4h-50.3zm83.7-50.4c0-27.8 22.5-50.4 50.3-50.4 27.8 0 50.3 22.6 50.3 50.4v134.4c0 27.8-22.5 50.4-50.3 50.4-27.8 0-50.3-22.6-50.3-50.4V311.4zM579.3 765c-27.8 0-50.3-22.6-50.3-50.4v-50.4h50.3c27.8 0 50.3 22.6 50.3 50.4 0 27.8-22.5 50.4-50.3 50.4zm134-134.4h-134c-13.3 0-26.1-5.3-35.6-14.8S529 593.6 529 580.2c0-27.8 22.5-50.4 50.3-50.4h134c27.8 0 50.3 22.6 50.3 50.4 0 27.8-22.5 50.4-50.3 50.4zm0-134.4H663v-50.4c0-27.8 22.5-50.4 50.3-50.4s50.3 22.6 50.3 50.4c0 27.8-22.5 50.4-50.3 50.4z"></path>
@@ -263,7 +262,9 @@ html_favicon = "images/logo/aeon-favicon.ico"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_css_files = ["css/custom.css"]
+html_css_files = [
+    "css/custom.css",
+]
 
 html_show_sourcelink = False
 
@@ -289,7 +290,13 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "aeon.tex", "aeon Documentation", "aeon developers", "manual"),
+    (
+        master_doc,
+        "aeon.tex",
+        "aeon Documentation",
+        "aeon developers",
+        "manual",
+    ),
 ]
 
 # -- Options for manual page output ------------------------------------------
@@ -314,6 +321,83 @@ texinfo_documents = [
         "Miscellaneous",
     ),
 ]
+
+
+def _make_estimator_overview(app):
+    """Make estimator overview table."""
+    import pandas as pd
+
+    from aeon.registry import all_estimators
+
+    def _does_not_start_with_underscore(input_string):
+        return not input_string.startswith("_")
+
+    # Columns for the output table
+    COLNAMES = ["Estimator name", "Module", "Method family"]
+    capabilities_to_include = [
+        "multivariate",
+        "unequal_length",
+        "missing_values",
+    ]
+
+    for capability_name in capabilities_to_include:
+        _str = capability_name.replace("_", " ")
+        COLNAMES.append(f"Supports {_str}")
+
+    data = {k: [] for k in COLNAMES}
+
+    for estimator_name, estimator_class in all_estimators():
+        algorithm_type = "::".join(str(estimator_class).split(".")[1:-2])
+        # fetch tags
+        tag_dict = estimator_class.get_class_tags()
+
+        # includes part of class string
+        modpath = str(estimator_class)[8:-2]
+        path_parts = modpath.split(".")
+        # joins strings excluding starting with '_'
+        clean_path = ".".join(list(filter(_does_not_start_with_underscore, path_parts)))
+        # adds html link reference
+        estimator_name_as_link = str(
+            '<a href="api_reference/auto_generated/'
+            + clean_path
+            + '.html">'
+            + estimator_name
+            + "</a>"
+        )
+        algorithm_type = algorithm_type.split("::")
+        data["Estimator name"].append(estimator_name_as_link)
+        data["Module"].append(algorithm_type[0])
+        if len(algorithm_type) > 1:
+            data["Method family"].append("/".join(algorithm_type[1:]))
+        else:
+            data["Method family"].append("N/A")
+        for capability_name in capabilities_to_include:
+            _val = tag_dict.get(f"capability:{capability_name}")
+            _str = capability_name.replace("_", " ")
+
+            # For case where tag is not included output as not supported.
+            if not _val or _val is None:
+                data[f"Supports {_str}"].append("\u274C")
+            else:
+                data[f"Supports {_str}"].append("\u2705")
+
+    df = pd.DataFrame.from_dict(data).sort_values(
+        by=["Module", "Method family", "Estimator name"]
+    )
+    df_str = df.to_markdown(index=False, tablefmt="github")
+    with open("estimator_overview_table.md", "w", encoding="utf-8") as file:
+        file.write(df_str)
+
+
+def setup(app):
+    """Set up sphinx builder.
+
+    Parameters
+    ----------
+    app : Sphinx application object
+    """
+    app.connect("builder-inited", _make_estimator_overview)
+
 
 # -- Extension configuration -------------------------------------------------
 
@@ -349,10 +433,10 @@ Generated using nbsphinx_. The Jupyter notebook can be found here_.
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/{.major}".format(sys.version_info), None),
-    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
-    "matplotlib": ("https://matplotlib.org/", None),
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
     "scikit-learn": ("https://scikit-learn.org/stable/", None),

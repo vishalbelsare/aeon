@@ -1,18 +1,12 @@
-# -*- coding: utf-8 -*-
-# copyright: aeon developers, BSD-3-Clause License (see LICENSE file)
 """Implements AutoARIMA model from statsforecast by Nixtla."""
 
-__author__ = ["FedericoGarza"]
+__maintainer__ = []
 __all__ = ["StatsForecastAutoARIMA"]
 
 
 from typing import Dict, Optional
 
 from aeon.forecasting.base.adapters._statsforecast import _StatsForecastAdapter
-from aeon.utils.validation._dependencies import _check_soft_dependencies
-
-_check_soft_dependencies("statsforecast", severity="warning")
-_check_soft_dependencies("pandas<2.0.0", severity="warning")
 
 
 class StatsForecastAutoARIMA(_StatsForecastAdapter):
@@ -237,7 +231,7 @@ class StatsForecastAutoARIMA(_StatsForecastAdapter):
         self.blambda = blambda
         self.biasadj = biasadj
         self.parallel = parallel
-        super(StatsForecastAutoARIMA, self).__init__()
+        super().__init__()
 
     def _instantiate_model(self):
         # import inside method to avoid hard dependency

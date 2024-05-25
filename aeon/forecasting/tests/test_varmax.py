@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 """Tests the VARMAX model."""
-__author__ = ["KatieBuc"]
+
+__maintainer__ = []
 
 import numpy as np
 import pandas as pd

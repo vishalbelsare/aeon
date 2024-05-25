@@ -25,7 +25,10 @@ github_checks:
 ignore:
   - ".github/"
   - ".binder/"
+  - "aeon/testing/expected_results/"
   - "build_tools/"
   - "docs/"
   - "examples/"
   - "extension_templates/"
+  # specific files
+  - "aeon/registry/_tag_deprecation.py"
