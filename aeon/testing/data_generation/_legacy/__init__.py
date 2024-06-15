@@ -13,6 +13,8 @@ __all__ = [
     "_assert_correct_columns",
     "_assert_correct_pred_time_index",
     "_get_n_columns",
+    "_make_hierarchical",
+    "_bottom_hier_datagen",
 ]
 
 from aeon.testing.data_generation._legacy._collection import (
@@ -26,6 +28,10 @@ from aeon.testing.data_generation._legacy._forecasting import (
     _assert_correct_pred_time_index,
     _get_n_columns,
     _make_fh,
+)
+from aeon.testing.data_generation._legacy._hierarchical import (
+    _bottom_hier_datagen,
+    _make_hierarchical,
 )
 from aeon.testing.data_generation._legacy._series import (
     _make_index,

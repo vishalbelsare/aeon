@@ -36,7 +36,7 @@ class Aggregator(BaseTransformer):
     Examples
     --------
     >>> from aeon.transformations.hierarchical.aggregate import Aggregator
-    >>> from aeon.testing.data_generation import _bottom_hier_datagen
+    >>> from aeon.testing.data_generation._legacy import _bottom_hier_datagen
     >>> agg = Aggregator()
     >>> y = _bottom_hier_datagen(
     ...     no_bottom_nodes=3,

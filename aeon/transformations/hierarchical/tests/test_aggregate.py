@@ -4,7 +4,7 @@ __maintainer__ = []
 
 import pytest
 
-from aeon.testing.data_generation import _bottom_hier_datagen
+from aeon.testing.data_generation._legacy import _bottom_hier_datagen
 from aeon.transformations.hierarchical.aggregate import Aggregator
 
 
