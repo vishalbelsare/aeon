@@ -53,7 +53,7 @@ class PeltSegmenter(BaseSegmenter):
     >>> from aeon.segmentation import PeltSegmenter
     >>> from aeon.datasets import load_gun_point_segmentation
     >>> X, true_period_size, cps = load_gun_point_segmentation()
-    >>> pelt = PeltSegmenter(10, n_cps=1)  # doctest: +SKIP
+    >>> pelt = PeltSegmenter(n_cps=1)  # doctest: +SKIP
     >>> found_cps = pelt.fit_predict(X)  # doctest: +SKIP
     """
 
