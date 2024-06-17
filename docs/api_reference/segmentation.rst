@@ -21,3 +21,4 @@ contains algorithms and tools for time series segmentation.
     EAggloSegmenter
     HMMSegmenter
     HidalgoSegmenter
+    PeltSegmenter
