@@ -1,4 +1,4 @@
-"""BinSeg (Binary segmentation) Segmenter."""
+"""Pelt (Linearly penalized segmentation) Segmenter."""
 
 __maintainer__ = []
 __all__ = ["PeltSegmenter"]
@@ -27,13 +27,20 @@ class PeltSegmenter(BaseSegmenter):
 
     Parameters
     ----------
-    min_size : int, default = 2
-        minimum segment length.
     n_cps : int, default = 1
         The number of change points to search.
     model : str, default = "l2"
         Segment model to use. Options are "l1", "l2", "rbf", etc.
         (see ruptures documentation for available models).
+    min_size : int, default = 2,
+        Minimum segment length. Defaults to 2 samples.
+        (see ruptures documentation for additional information).
+    jump : int, default = 5,
+        Subsample (one every jump points). Defaults to 5.
+        (see ruptures documentation for additional information).
+    pen : int, default = 2
+        penalty value.
+        (see ruptures documentation for additional information).
 
     References
     ----------
@@ -55,10 +62,12 @@ class PeltSegmenter(BaseSegmenter):
         "python_dependencies": "ruptures",
     }
 
-    def __init__(self, period_length=10, n_cps=1, model="l2"):
-        self.period_length = int(period_length)
+    def __init__(self, n_cps=1, model="l2", min_size=2, jump=5, pen=2):
         self.n_cps = n_cps
+        self.min_size = min_size
+        self.jump = jump
         self.model = model
+        self.pen = pen
         super().__init__(n_segments=n_cps + 1, axis=1)
 
     def _predict(self, X: np.ndarray):
@@ -75,7 +84,7 @@ class PeltSegmenter(BaseSegmenter):
             List of change points found in X.
         """
         X = X.squeeze()
-        self.found_cps = self._run_binseg(X)
+        self.found_cps = self._run_pelt(X)
         return self.found_cps
 
     def get_fitted_params(self):
@@ -87,13 +96,13 @@ class PeltSegmenter(BaseSegmenter):
         """
         return {}
 
-    def _run_binseg(self, X):
+    def _run_pelt(self, X):
         _check_soft_dependencies("ruptures", severity="error")
         import ruptures as rpt
 
-        binseg = rpt.Binseg(model=self.model, min_size=int(X.shape[0] * 0.05)).fit(X)
+        pelt = rpt.Pelt(model=self.model, min_size=self.min_size, jump=self.jump).fit(X)
         self.found_cps = np.array(
-            binseg.predict(n_bkps=self.n_cps)[:-1], dtype=np.int64
+            pelt.predict(pen=self.pen)[: self.n_cps], dtype=np.int64
         )
 
         return self.found_cps
@@ -136,4 +145,4 @@ class PeltSegmenter(BaseSegmenter):
             `MyClass(**params)` or `MyClass(**params[i])` creates a valid test instance.
             `create_test_instance` uses the first (or only) dictionary in `params`
         """
-        return {"period_length": 10, "n_cps": 1}
+        return {"n_cps": 1}
