@@ -3,7 +3,6 @@
 __maintainer__ = ["MatthewMiddlehurst"]
 __all__ = ["STRAY"]
 
-from typing import Dict
 
 import numpy as np
 import numpy.typing as npt
@@ -23,16 +22,6 @@ class STRAY(BaseAnomalyDetector):
     from some limitations that affect its accuracy. STRAY is an extension of
     HDoutliers that uses extreme value theory for the anomolous threshold
     calculation, to deal with data streams that exhibit non-stationary behavior.
-
-    .. list-table:: Capabilities
-       :stub-columns: 1
-
-       * - Input data format
-         - univariate and multivariate
-       * - Output data format
-         - binary classification
-       * - Learning Type
-         - unsupervised
 
     Parameters
     ----------
@@ -67,13 +56,10 @@ class STRAY(BaseAnomalyDetector):
     --------
     >>> from aeon.anomaly_detection import STRAY
     >>> from aeon.datasets import load_airline
-    >>> from sklearn.preprocessing import MinMaxScaler
     >>> import numpy as np
-    >>> X = load_airline().to_frame().to_numpy()
-    >>> scaler = MinMaxScaler()
-    >>> X = scaler.fit_transform(X)
+    >>> X = load_airline()
     >>> detector = STRAY(k=3)
-    >>> y = detector.fit_predict(X, axis=0)
+    >>> y = detector.fit_predict(X)
     >>> y[:5]
     array([False, False, False, False, False])
     """
@@ -119,7 +105,7 @@ class STRAY(BaseAnomalyDetector):
 
         return outlier_bool.astype(bool)
 
-    def _find_outliers_kNN(self, X: np.ndarray, n: int) -> Dict:
+    def _find_outliers_kNN(self, X: np.ndarray, n: int) -> dict:
         """Find outliers using kNN distance with maximum gap.
 
         Parameters
@@ -178,7 +164,7 @@ class STRAY(BaseAnomalyDetector):
         ]
 
         log_alpha = np.log(1 / self.alpha)
-        bound = np.Inf
+        bound = np.inf
 
         for i in range(start, n):
             if gaps[i] > log_alpha * ghat[i]:

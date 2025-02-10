@@ -1,6 +1,6 @@
-"""Encoder Classifier."""
+"""Encoder Network (EncoderNetwork)."""
 
-__maintainer__ = []
+__maintainer__ = ["hadifawaz1999"]
 
 from aeon.networks.base import BaseDeepLearningNetwork
 
@@ -41,11 +41,7 @@ class EncoderNetwork(BaseDeepLearningNetwork):
     .. [1] Serrà et al. Towards a Universal Neural Network Encoder for Time Series
     In proceedings International Conference of the Catalan Association
     for Artificial Intelligence, 120--129 2018.
-
-
     """
-
-    _tags = {"python_dependencies": ["tensorflow", "tensorflow_addons"]}
 
     def __init__(
         self,
@@ -84,7 +80,6 @@ class EncoderNetwork(BaseDeepLearningNetwork):
         output_layer : a keras layer
         """
         import tensorflow as tf
-        import tensorflow_addons as tfa
 
         self._kernel_size = (
             [5, 11, 21] if self.kernel_size is None else self.kernel_size
@@ -103,7 +98,7 @@ class EncoderNetwork(BaseDeepLearningNetwork):
                 strides=self.strides,
             )(x)
 
-            conv = tfa.layers.InstanceNormalization()(conv)
+            conv = tf.keras.layers.GroupNormalization(groups=-1)(conv)
             conv = tf.keras.layers.PReLU(shared_axes=[1])(conv)
             conv = tf.keras.layers.Dropout(self.dropout_proba)(conv)
 
@@ -112,29 +107,14 @@ class EncoderNetwork(BaseDeepLearningNetwork):
 
             x = conv
 
-        # split attention
-
-        split_index = self._n_filters[-1] // 2
-
-        attention_multiplier_1 = tf.keras.layers.Softmax()(
-            tf.keras.layers.Lambda(lambda x: x[:, :, :split_index])(conv)
-        )
-        attention_multiplier_2 = tf.keras.layers.Lambda(
-            lambda x: x[:, :, split_index:]
-        )(conv)
-
-        # attention mechanism
-
-        attention = tf.keras.layers.Multiply()(
-            [attention_multiplier_1, attention_multiplier_2]
-        )
+        attention = tf.keras.layers.Attention()([conv, conv, conv])
 
         # add fully connected hidden layer
 
         hidden_fc_layer = tf.keras.layers.Dense(
             units=self.fc_units, activation=self.activation
         )(attention)
-        hidden_fc_layer = tfa.layers.InstanceNormalization()(hidden_fc_layer)
+        hidden_fc_layer = tf.keras.layers.GroupNormalization(groups=-1)(hidden_fc_layer)
 
         # output layer before classification layer
 

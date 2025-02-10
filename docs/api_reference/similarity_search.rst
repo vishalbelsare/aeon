@@ -17,8 +17,7 @@ Similarity search estimators
     :template: class.rst
 
     QuerySearch
-    BaseSimiliaritySearch
-
+    SeriesSearch
 
 Distance profile functions
 --------------------------
@@ -29,9 +28,32 @@ Distance profile functions
     :toctree: auto_generated/
     :template: function.rst
 
-    naive_euclidean_profile
-    normalized_naive_euclidean_profile
     euclidean_distance_profile
-    normalized_euclidean_distance_profile
+    normalised_euclidean_distance_profile
     squared_distance_profile
-    normalized_squared_distance_profile
+    normalised_squared_distance_profile
+
+Matrix profile functions
+--------------------------
+
+.. currentmodule:: aeon.similarity_search.matrix_profiles
+
+.. autosummary::
+    :toctree: auto_generated/
+    :template: function.rst
+
+    stomp_normalised_euclidean_matrix_profile
+    stomp_euclidean_matrix_profile
+    stomp_normalised_squared_matrix_profile
+    stomp_squared_matrix_profile
+
+Base
+----
+
+.. currentmodule:: aeon.similarity_search.base
+
+.. autosummary::
+    :toctree: auto_generated/
+    :template: class.rst
+
+    BaseSimilaritySearch

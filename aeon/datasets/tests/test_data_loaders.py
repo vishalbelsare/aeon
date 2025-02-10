@@ -17,7 +17,7 @@ from aeon.datasets import (
     load_classification,
     load_forecasting,
     load_from_arff_file,
-    load_from_tsfile,
+    load_from_ts_file,
     load_from_tsv_file,
     load_regression,
 )
@@ -28,8 +28,10 @@ from aeon.datasets._data_loaders import (
     _load_data,
     _load_header_info,
     _load_saved_dataset,
+    _load_tsc_dataset,
+    download_dataset,
 )
-from aeon.testing.test_config import PR_TESTING
+from aeon.testing.testing_config import PR_TESTING
 
 
 @pytest.mark.skipif(
@@ -291,24 +293,14 @@ def test__load_data():
     PR_TESTING,
     reason="Only run on overnights because of intermittent fail for read/write",
 )
-@pytest.mark.parametrize("return_X_y", [True, False])
-@pytest.mark.parametrize("return_type", ["nested_univ", "numpy3D", "numpy2D"])
-def test_load_provided_dataset(return_X_y, return_type):
+@pytest.mark.parametrize("return_type", ["numpy3D", "numpy2D"])
+def test_load_provided_dataset(return_type):
     """Test function to check for proper loading.
 
-    Check all possibilities of return_X_y and return_type.
+    Check all possibilities of  return_type.
     """
-    if return_X_y:
-        X, y = _load_saved_dataset("UnitTest", "TRAIN", return_X_y, return_type)
-        assert isinstance(y, np.ndarray)
-    else:
-        X = _load_saved_dataset("UnitTest", "TRAIN", return_X_y, return_type)
-    if not return_X_y:
-        assert isinstance(X, tuple)
-        X = X[0]
-    if return_type == "nested_univ":
-        assert isinstance(X, pd.DataFrame)
-    elif return_type == "numpy3D":
+    X, y = _load_saved_dataset("UnitTest", "TRAIN", return_type)
+    if return_type == "numpy3D":
         assert isinstance(X, np.ndarray) and X.ndim == 3
     elif return_type == "numpy2D":
         assert isinstance(X, np.ndarray) and X.ndim == 2
@@ -318,7 +310,7 @@ def test_load_provided_dataset(return_X_y, return_type):
     PR_TESTING,
     reason="Only run on overnights because of intermittent fail for read/write",
 )
-def test_load_from_tsfile():
+def test_load_from_ts_file():
     """Test function for loading TS formats.
 
     Test
@@ -333,12 +325,12 @@ def test_load_from_tsfile():
         os.path.dirname(aeon.__file__),
         "datasets/data/UnitTest/UnitTest_TRAIN.ts",
     )
-    X, y = load_from_tsfile(data_path, return_meta_data=False)
+    X, y = load_from_ts_file(data_path, return_meta_data=False)
     assert isinstance(X, np.ndarray) and isinstance(y, np.ndarray)
     assert X.ndim == 3
     assert X.shape == (20, 1, 24) and y.shape == (20,)
     assert X[0][0][0] == 573.0
-    X, y = load_from_tsfile(data_path, return_meta_data=False, return_type="numpy2D")
+    X, y = load_from_ts_file(data_path, return_meta_data=False, return_type="numpy2D")
     assert isinstance(X, np.ndarray)
     assert X.ndim == 2
     assert X.shape == (20, 24)
@@ -350,11 +342,11 @@ def test_load_from_tsfile():
         os.path.dirname(aeon.__file__),
         "datasets/data/BasicMotions/BasicMotions_TRAIN.ts",
     )
-    X, y = load_from_tsfile(data_path, return_meta_data=False)
+    X, y = load_from_ts_file(data_path, return_meta_data=False)
     assert isinstance(X, np.ndarray) and isinstance(y, np.ndarray)
     assert X.shape == (40, 6, 100) and y.shape == (40,)
     assert X[1][2][3] == -1.898794
-    X, y = load_from_tsfile(data_path, return_meta_data=False)
+    X, y = load_from_ts_file(data_path, return_meta_data=False)
     assert isinstance(X, np.ndarray) and isinstance(y, np.ndarray)
     assert X.ndim == 3
     assert X.shape == (40, 6, 100) and y.shape == (40,)
@@ -367,7 +359,7 @@ def test_load_from_tsfile():
         "datasets/data/PLAID/PLAID_TRAIN.ts",
     )
 
-    X, y = load_from_tsfile(full_file_path_and_name=data_path, return_meta_data=False)
+    X, y = load_from_ts_file(full_file_path_and_name=data_path, return_meta_data=False)
     assert isinstance(X, list) and isinstance(y, np.ndarray)
     assert len(X) == 537 and y.shape == (537,)
     # Test 3.2: load multivariate unequal length (JapaneseVowels), should return a X
@@ -376,7 +368,7 @@ def test_load_from_tsfile():
         os.path.dirname(aeon.__file__),
         "datasets/data/JapaneseVowels/JapaneseVowels_TRAIN.ts",
     )
-    X, y = load_from_tsfile(full_file_path_and_name=data_path, return_meta_data=False)
+    X, y = load_from_ts_file(full_file_path_and_name=data_path, return_meta_data=False)
     assert isinstance(X, list) and isinstance(y, np.ndarray)
     assert len(X) == 270 and y.shape == (270,)
 
@@ -525,3 +517,37 @@ def test__load_saved_dataset():
     assert np.array_equal(X, X3)
     assert np.array_equal(X4, X5)
     assert not np.array_equal(X, X4)
+
+
+@pytest.mark.skipif(
+    PR_TESTING,
+    reason="Only run on overnights because of intermittent fail for read/write",
+)
+@pytest.mark.xfail(raises=(URLError, TimeoutError, ConnectionError))
+def test_download_dataset():
+    """Test the private download_dataset function."""
+    name = "Chinatown"
+    with tempfile.TemporaryDirectory() as tmp:
+        path = download_dataset(name, save_path=tmp)
+        assert path == os.path.join(tmp, name)
+        path = download_dataset(name, save_path=tmp)
+        assert path == os.path.join(tmp, name)
+        with pytest.raises(ValueError, match="Invalid dataset name"):
+            download_dataset("FOO", save_path=tmp)
+        with pytest.raises(ValueError, match="Invalid dataset name"):
+            download_dataset("BAR")
+
+
+@pytest.mark.skipif(
+    PR_TESTING,
+    reason="Only run on overnights because of intermittent fail for read/write",
+)
+@pytest.mark.xfail(raises=(URLError, TimeoutError, ConnectionError))
+def test_load_tsc_dataset():
+    """Test the private _load_tsc_dataset function."""
+    name = "Chinatown"
+    with tempfile.TemporaryDirectory() as tmp:
+        X, y = _load_tsc_dataset(name, split="TRAIN", extract_path=tmp)
+        assert isinstance(X, np.ndarray) and isinstance(y, np.ndarray)
+        with pytest.raises(ValueError, match="Invalid dataset name"):
+            _load_tsc_dataset("FOO", split="TEST", extract_path=tmp)

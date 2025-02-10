@@ -1,6 +1,6 @@
 """Encoder Classifier."""
 
-__maintainer__ = []
+__maintainer__ = ["hadifawaz1999"]
 __all__ = ["EncoderClassifier"]
 
 import gc
@@ -40,8 +40,29 @@ class EncoderClassifier(BaseDeepClassifier):
     fc_units : int, default = 256
         Specifying the number of units in the hidden fully
         connected layer used in the EncoderNetwork.
+    verbose : boolean, default = False
+        Whether to output extra information.
+    loss : str, default = "categorical_crossentropy"
+        The name of the keras training loss.
+    metrics : str or list[str], default="accuracy"
+        The evaluation metrics to use during training. If
+        a single string metric is provided, it will be
+        used as the only metric. If a list of metrics are
+        provided, all will be used for evaluation.
+    optimizer : keras.optimizer, default = tf.keras.optimizers.Adam()
+        The keras optimizer used for training.
+    callbacks : keras callback or list of callbacks,
+        default = None
+        The default list of callbacks are set to
+        ModelCheckpoint.
     file_path : str, default = "./"
         File path when saving model_Checkpoint callback.
+    n_epochs : int, default = 2000
+        The number of epochs to train the model.
+    batch_size : int, default = 16
+        The number of samples per gradient update.
+    use_mini_batch_size : bool, default = False
+        Whether or not to use the mini batch size formula.
     save_best_model : bool, default = False
         Whether or not to save the best model, if the
         modelcheckpoint callback is used by default,
@@ -52,6 +73,8 @@ class EncoderClassifier(BaseDeepClassifier):
         Whether or not to save the last model, last
         epoch trained, using the base class method
         save_last_model_to_file.
+    save_init_model : bool, default = False
+        Whether to save the initialization of the  model.
     best_file_name : str, default = "best_model"
         The name of the file of the best model, if
         save_best_model is set to False, this parameter
@@ -60,6 +83,9 @@ class EncoderClassifier(BaseDeepClassifier):
         The name of the file of the last model, if
         save_last_model is set to False, this parameter
         is discarded.
+    init_file_name : str, default = "init_model"
+        The name of the file of the init model, if save_init_model is set to False,
+        this parameter is discarded.
     random_state : int, RandomState instance or None, default=None
         If `int`, random_state is the seed used by the random number generator;
         If `RandomState` instance, random_state is the random number generator;
@@ -82,10 +108,6 @@ class EncoderClassifier(BaseDeepClassifier):
 
     """
 
-    _tags = {
-        "python_dependencies": ["tensorflow", "tensorflow_addons"],
-    }
-
     def __init__(
         self,
         n_epochs=100,
@@ -102,11 +124,13 @@ class EncoderClassifier(BaseDeepClassifier):
         file_path="./",
         save_best_model=False,
         save_last_model=False,
+        save_init_model=False,
         best_file_name="best_model",
         last_file_name="last_model",
+        init_file_name="init_model",
         verbose=False,
         loss="categorical_crossentropy",
-        metrics=None,
+        metrics="accuracy",
         random_state=None,
         use_bias=True,
         optimizer=None,
@@ -124,7 +148,9 @@ class EncoderClassifier(BaseDeepClassifier):
         self.file_path = file_path
         self.save_best_model = save_best_model
         self.save_last_model = save_last_model
+        self.save_init_model = save_init_model
         self.best_file_name = best_file_name
+        self.init_file_name = init_file_name
         self.n_epochs = n_epochs
         self.verbose = verbose
         self.loss = loss
@@ -173,18 +199,13 @@ class EncoderClassifier(BaseDeepClassifier):
         import numpy as np
         import tensorflow as tf
 
-        if self.metrics is None:
-            metrics = ["accuracy"]
-        else:
-            metrics = self.metrics
-
         rng = check_random_state(self.random_state)
         self.random_state_ = rng.randint(0, np.iinfo(np.int32).max)
         tf.keras.utils.set_random_seed(self.random_state_)
         input_layer, output_layer = self._network.build_network(input_shape, **kwargs)
 
         output_layer = tf.keras.layers.Dense(
-            units=n_classes, activation=self.activation, use_bias=self.use_bias
+            units=n_classes, activation=self.activation
         )(output_layer)
 
         self.optimizer_ = (
@@ -197,7 +218,7 @@ class EncoderClassifier(BaseDeepClassifier):
         model.compile(
             loss=self.loss,
             optimizer=self.optimizer_,
-            metrics=metrics,
+            metrics=self._metrics,
         )
 
         return model
@@ -222,8 +243,16 @@ class EncoderClassifier(BaseDeepClassifier):
         # Transpose to conform to Keras input style.
         X = X.transpose(0, 2, 1)
 
+        if isinstance(self.metrics, list):
+            self._metrics = self.metrics
+        elif isinstance(self.metrics, str):
+            self._metrics = [self.metrics]
+
         self.input_shape = X.shape[1:]
         self.training_model_ = self.build_model(self.input_shape, self.n_classes_)
+
+        if self.save_init_model:
+            self.training_model_.save(self.file_path + self.init_file_name + ".keras")
 
         if self.verbose:
             self.training_model_.summary()
@@ -232,17 +261,20 @@ class EncoderClassifier(BaseDeepClassifier):
             self.best_file_name if self.save_best_model else str(time.time_ns())
         )
 
-        self.callbacks_ = (
-            [
+        if self.callbacks is None:
+            self.callbacks_ = [
                 tf.keras.callbacks.ModelCheckpoint(
                     filepath=self.file_path + self.file_name_ + ".keras",
                     monitor="loss",
                     save_best_only=True,
                 ),
             ]
-            if self.callbacks is None
-            else self.callbacks
-        )
+        else:
+            self.callbacks_ = self._get_model_checkpoint_callback(
+                callbacks=self.callbacks,
+                file_path=self.file_path,
+                file_name=self.file_name_,
+            )
 
         self.history = self.training_model_.fit(
             X,
@@ -255,7 +287,8 @@ class EncoderClassifier(BaseDeepClassifier):
 
         try:
             self.model_ = tf.keras.models.load_model(
-                self.file_path + self.file_name_ + ".keras", compile=False
+                self.file_path + self.file_name_ + ".keras",
+                compile=False,
             )
             if not self.save_best_model:
                 os.remove(self.file_path + self.file_name_ + ".keras")
@@ -269,7 +302,7 @@ class EncoderClassifier(BaseDeepClassifier):
         return self
 
     @classmethod
-    def get_test_params(cls, parameter_set="default"):
+    def _get_test_params(cls, parameter_set="default"):
         """Return testing parameter settings for the estimator.
 
         Parameters
@@ -288,7 +321,6 @@ class EncoderClassifier(BaseDeepClassifier):
             Parameters to create testing instances of the class.
             Each dict are parameters to construct an "interesting" test instance, i.e.,
             `MyClass(**params)` or `MyClass(**params[i])` creates a valid test instance.
-            `create_test_instance` uses the first (or only) dictionary in `params`.
         """
         param1 = {
             "n_epochs": 8,
