@@ -21,16 +21,6 @@ class MERLIN(BaseAnomalyDetector):
     most anomalous subsequence in a time series [1]_. The algorithm is based on the
     Euclidean distance between subsequences of the time series.
 
-    .. list-table:: Capabilities
-       :stub-columns: 1
-
-       * - Input data format
-         - univariate
-       * - Output data format
-         - binary classification
-       * - Learning Type
-         - unsupervised
-
     Parameters
     ----------
     min_length : int, default=5
@@ -208,7 +198,7 @@ class MERLIN(BaseAnomalyDetector):
         return C[d_max], np.sqrt(D[d_max])
 
     @classmethod
-    def get_test_params(cls, parameter_set="default"):
+    def _get_test_params(cls, parameter_set="default"):
         """Return testing parameter settings for the estimator.
 
         Parameters
@@ -223,6 +213,5 @@ class MERLIN(BaseAnomalyDetector):
             Parameters to create testing instances of the class.
             Each dict are parameters to construct an "interesting" test instance, i.e.,
             `MyClass(**params)` or `MyClass(**params[i])` creates a valid test instance.
-            `create_test_instance` uses the first (or only) dictionary in `params`.
         """
         return {"min_length": 4, "max_length": 7}

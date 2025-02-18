@@ -18,7 +18,6 @@ References
 """
 
 from dataclasses import dataclass, field
-from typing import List
 
 import numpy as np
 import numpy.typing as npt
@@ -34,7 +33,7 @@ __maintainer__ = []
 class ChangePointResult:
     k: int
     score: float
-    change_points: List[int]
+    change_points: list[int]
 
 
 def entropy(X: npt.ArrayLike) -> float:
@@ -58,7 +57,7 @@ def entropy(X: npt.ArrayLike) -> float:
     return -np.sum(p * np.log(p))
 
 
-def generate_segments(X: npt.ArrayLike, change_points: List[int]) -> npt.ArrayLike:
+def generate_segments(X: npt.ArrayLike, change_points: list[int]) -> npt.ArrayLike:
     """Generate separate segments from time series based on change points.
 
     Parameters
@@ -80,7 +79,7 @@ def generate_segments(X: npt.ArrayLike, change_points: List[int]) -> npt.ArrayLi
         yield X[start:end, :]
 
 
-def generate_segments_pandas(X: npt.ArrayLike, change_points: List) -> npt.ArrayLike:
+def generate_segments_pandas(X: npt.ArrayLike, change_points: list) -> npt.ArrayLike:
     """Generate separate segments from time series based on change points.
 
     Parameters
@@ -153,19 +152,6 @@ class _IGTS:
        "Information gain-based metric for recognizing transitions in human activities.",
        Pervasive and Mobile Computing, 38, 92-109, (2017).
        https://www.sciencedirect.com/science/article/abs/pii/S1574119217300081
-
-    Examples
-    --------
-    >>> from aeon.testing.data_generation import piecewise_normal_multivariate
-    >>> from sklearn.preprocessing import MinMaxScaler
-    >>> from aeon.segmentation import InformationGainSegmenter
-    >>> X = piecewise_normal_multivariate(lengths=[10, 10, 10, 10],
-    ...     means=[[0.0, 1.0], [11.0, 10.0], [5.0, 3.0], [2.0, 2.0]],
-    ...     variances=0.5)
-    >>> X_scaled = MinMaxScaler(feature_range=(0, 1)).fit_transform(X)
-    >>> igts = InformationGainSegmenter(k_max=3, step=2)
-    >>> y = igts.fit_predict(X_scaled, axis=0)
-
     """
 
     # init attributes
@@ -173,13 +159,13 @@ class _IGTS:
     step: int = 5
 
     # computed attributes
-    intermediate_results_: List = field(init=False, default_factory=list)
+    intermediate_results_: list = field(init=False, default_factory=list)
 
-    def identity(self, X: npt.ArrayLike) -> List[int]:
+    def identity(self, X: npt.ArrayLike) -> list[int]:
         """Return identity segmentation, i.e. terminal indexes of the data."""
         return sorted([0, X.shape[0]])
 
-    def get_candidates(self, n_samples: int, change_points: List[int]) -> List[int]:
+    def get_candidates(self, n_samples: int, change_points: list[int]) -> list[int]:
         """Generate candidate change points.
 
         Also exclude existing change points.
@@ -200,7 +186,7 @@ class _IGTS:
         )
 
     @staticmethod
-    def information_gain_score(X: npt.ArrayLike, change_points: List[int]) -> float:
+    def information_gain_score(X: npt.ArrayLike, change_points: list[int]) -> float:
         """Calculate the information gain score.
 
         The formula is based on equation (2) from [1]_.
@@ -226,7 +212,7 @@ class _IGTS:
         ]
         return entropy(X) - sum(segment_entropies) / X.shape[0]
 
-    def find_change_points(self, X: npt.ArrayLike) -> List[int]:
+    def find_change_points(self, X: npt.ArrayLike) -> list[int]:
         """Find change points.
 
         Using a top-down search method, iteratively identify at most
@@ -257,7 +243,8 @@ class _IGTS:
         current_change_points = self.identity(X)
 
         for k in range(self.k_max):
-            ig_max = 0
+            best_candidate = -1
+            ig_max = -1
             # find a point which maximizes score
             for candidate in self.get_candidates(n_samples, current_change_points):
                 try_change_points = {candidate}
@@ -336,12 +323,10 @@ class InformationGainSegmenter(BaseSegmenter):
 
     Examples
     --------
-    >>> from aeon.testing.data_generation import piecewise_normal_multivariate
+    >>> from aeon.testing.data_generation import make_example_dataframe_series
     >>> from sklearn.preprocessing import MinMaxScaler
     >>> from aeon.segmentation import InformationGainSegmenter
-    >>> X = piecewise_normal_multivariate(lengths=[10, 10, 10, 10],
-    ...     means=[[0.0, 1.0], [11.0, 10.0], [5.0, 3.0], [2.0, 2.0]],
-    ...     variances=0.5)
+    >>> X = make_example_dataframe_series(n_channels=2, random_state=10)
     >>> X_scaled = MinMaxScaler(feature_range=(0, 1)).fit_transform(X)
     >>> igts = InformationGainSegmenter(k_max=3, step=2)
     >>> y = igts.fit_predict(X_scaled, axis=0)
@@ -390,7 +375,7 @@ class InformationGainSegmenter(BaseSegmenter):
         return self._igts.__repr__()
 
     @classmethod
-    def get_test_params(cls, parameter_set="default"):
+    def _get_test_params(cls, parameter_set="default"):
         """Return testing parameter settings for the estimator.
 
         Parameters

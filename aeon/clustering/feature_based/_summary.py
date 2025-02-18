@@ -11,7 +11,7 @@ from sklearn.cluster import KMeans
 
 from aeon.base._base import _clone_estimator
 from aeon.clustering import BaseClusterer
-from aeon.transformations.collection.feature_based import SevenNumberSummaryTransformer
+from aeon.transformations.collection.feature_based import SevenNumberSummary
 
 
 class SummaryClusterer(BaseClusterer):
@@ -19,7 +19,7 @@ class SummaryClusterer(BaseClusterer):
     Summary statistic clusterer.
 
     This clusterer simply transforms the input data using the
-    SevenNumberSummaryTransformer transformer and builds a provided estimator using the
+    SevenNumberSummary transformer and builds a provided estimator using the
     transformed data.
 
     Parameters
@@ -105,7 +105,7 @@ class SummaryClusterer(BaseClusterer):
         Changes state by creating a fitted model that updates attributes
         ending in "_" and sets is_fitted flag to True.
         """
-        self._transformer = SevenNumberSummaryTransformer(
+        self._transformer = SevenNumberSummary(
             summary_stats=self.summary_stats,
         )
 
@@ -120,6 +120,8 @@ class SummaryClusterer(BaseClusterer):
 
         X_t = self._transformer.fit_transform(X, y)
         self._estimator.fit(X_t, y)
+
+        self.labels_ = self._estimator.labels_
 
         return self
 
@@ -157,11 +159,4 @@ class SummaryClusterer(BaseClusterer):
         if callable(m):
             return self._estimator.predict_proba(self._transformer.transform(X))
         else:
-            preds = self._estimator.predict(self._transformer.transform(X))
-            dists = np.zeros((X.shape[0], np.unique(preds).shape[0]))
-            for i in range(0, X.shape[0]):
-                dists[i, preds[i]] = 1
-            return dists
-
-    def _score(self, X, y=None):
-        raise NotImplementedError("SummaryClusterer does not support scoring.")
+            return super()._predict_proba(X)
